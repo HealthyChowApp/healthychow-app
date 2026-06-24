@@ -3,152 +3,217 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Healthy Chow Prototype</title>
+<title>Healthy Chow: Eat out. Eat right.</title>
+<meta name="description" content="Healthy Chow is your scout. Tell us how you want to eat and we'll tell you exactly what to order at restaurants near you." />
+<meta name="theme-color" content="#1E4F2B" />
+<link rel="icon" type="image/png" href="assets/app-icon.png" />
+<link rel="apple-touch-icon" href="assets/app-icon.png" />
+<meta property="og:title" content="Healthy Chow: Eat out. Eat right." />
+<meta property="og:description" content="Your scout for eating out. Exact orders, modifications included, for keto, low-carb, Mediterranean, paleo, and carnivore." />
+<meta property="og:image" content="assets/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --green:#1f9d55; --green-dark:#157347; --green-light:#e8f6ee;
-    --amber:#b7791f; --amber-light:#fdf3e0;
-    --red:#c0392b; --red-light:#fdecea;
-    --ink:#1a2b22; --muted:#67786f; --line:#e2e9e4;
-    --bg:#f5f8f6; --card:#ffffff;
-    --shadow:0 1px 3px rgba(20,60,40,.08),0 6px 24px rgba(20,60,40,.06);
-    --radius:16px;
+    /* brand core */
+    --kale:#1E4F2B;        /* anchor, dominant */
+    --leaf:#2F6B3C;        /* mid green */
+    --leaf-soft:#E7EFE7;   /* green tint */
+    --turmeric:#F4B23E;    /* accent only */
+    --turmeric-deep:#E09A1E;
+    --turmeric-soft:#FBEFD3;
+    --cream:#F4EFE1;       /* page bg */
+    --card:#ffffff;
+    --ink:#2A2A2A;         /* body text */
+    --muted:#5A6B5E;       /* gray-green */
+    --line:#E6DFCD;        /* warm hairline */
+    /* diet sub-marks */
+    --d-lowcarb:#E07A3E;
+    --d-med:#2F7DA3;
+    --d-keto:#7A4FA0;
+    --d-paleo:#9C5B33;
+    --d-carn:#B0413E;
+    /* semantic fit */
+    --fit-strong:#1E4F2B;
+    --fit-good:#B07A12;
+    --fit-weak:#B0413E;
+    --shadow:0 1px 2px rgba(30,79,43,.06),0 8px 26px rgba(30,79,43,.07);
+    --radius:18px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.5;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--cream); color:var(--ink); line-height:1.5;
     -webkit-font-smoothing:antialiased;
   }
-  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:40px}
+  h1,h2,h3,.display{font-family:'Poppins','Inter',sans-serif;letter-spacing:-.02em}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--cream);position:relative;padding-bottom:40px}
   .screen{display:none;animation:fade .3s ease}
   .screen.active{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
+  /* logo mark */
+  .mark{display:inline-block;vertical-align:middle}
+  .lockup{display:inline-flex;align-items:center;gap:11px}
+  .wordmark{font-family:'Poppins';font-weight:800;letter-spacing:-.03em;line-height:.92}
+  .wordmark .h{color:var(--kale)}
+  .wordmark .c{color:var(--turmeric-deep)}
+
   /* top bar */
-  .topbar{display:flex;align-items:center;gap:12px;padding:18px 20px 10px;position:sticky;top:0;background:var(--bg);z-index:5}
-  .back{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
-  .back:hover{background:#eaefeb}
-  .progress{flex:1;height:6px;background:#e2e9e4;border-radius:99px;overflow:hidden}
-  .progress > i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .35s ease;width:0%}
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 20px 10px;position:sticky;top:0;background:var(--cream);z-index:5}
+  .back{background:none;border:none;font-size:22px;color:var(--kale);cursor:pointer;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .back:hover{background:#eae3d2}
+  .progress{flex:1;height:7px;background:#e3dcc9;border-radius:99px;overflow:hidden}
+  .progress > i{display:block;height:100%;background:var(--kale);border-radius:99px;transition:width .35s ease;width:0%}
 
   .pad{padding:8px 24px 24px}
-  h1{font-size:26px;letter-spacing:-.5px;margin-bottom:8px}
-  h2{font-size:22px;letter-spacing:-.3px;margin-bottom:6px}
+  h1{font-size:27px;margin-bottom:8px;color:var(--kale)}
+  h2{font-size:23px;margin-bottom:6px;color:var(--kale)}
   .sub{color:var(--muted);font-size:15px;margin-bottom:22px}
 
-  /* brand / welcome */
-  .welcome{padding:64px 28px 28px;text-align:center;display:flex;flex-direction:column;min-height:100vh}
-  .logo{font-size:30px;font-weight:800;letter-spacing:-1px;display:inline-flex;align-items:center;gap:10px;justify-content:center}
-  .logo .leaf{width:38px;height:38px;background:var(--green);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:22px}
-  .hero-img{font-size:74px;margin:36px 0 8px}
-  .welcome p.lead{font-size:17px;color:var(--muted);max-width:340px;margin:6px auto 0}
-  .pricing{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:30px auto 0;max-width:340px;box-shadow:var(--shadow)}
-  .pricing .amt{font-size:34px;font-weight:800}
-  .pricing .amt span{font-size:15px;color:var(--muted);font-weight:500}
-  .pricing ul{list-style:none;text-align:left;margin-top:14px;font-size:14px;color:var(--ink)}
-  .pricing li{padding:5px 0;display:flex;gap:10px;align-items:flex-start}
-  .pricing li:before{content:"✓";color:var(--green);font-weight:800}
+  /* welcome */
+  .welcome{padding:54px 28px 28px;text-align:center;display:flex;flex-direction:column;min-height:100vh}
+  .brandtop{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .tagline{font-family:'Poppins';font-weight:700;letter-spacing:.16em;font-size:12px;color:var(--muted);text-transform:uppercase}
+  .hero-mark{margin:30px auto 6px}
+  .welcome h1{font-size:26px;margin-top:8px;line-height:1.15}
+  .welcome p.lead{font-size:17px;color:var(--muted);max-width:340px;margin:8px auto 0}
+  .pricing{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin:28px auto 0;max-width:340px;box-shadow:var(--shadow)}
+  .pricing .amt{font-family:'Poppins';font-weight:800;font-size:36px;color:var(--kale)}
+  .pricing .amt span{font-size:15px;color:var(--muted);font-weight:500;font-family:'Inter'}
+  .pricing ul{list-style:none;text-align:left;margin-top:14px;font-size:14.5px;color:var(--ink)}
+  .pricing li{padding:6px 0;display:flex;gap:10px;align-items:flex-start}
+  .pricing li .tick{color:var(--turmeric-deep);font-weight:800;flex-shrink:0}
   .spacer{flex:1}
 
   /* buttons */
-  .btn{display:block;width:100%;background:var(--green);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;transition:transform .05s, background .2s;font-family:inherit}
-  .btn:hover{background:var(--green-dark)}
+  .btn{display:block;width:100%;background:var(--kale);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;transition:transform .05s, background .2s, box-shadow .2s;font-family:'Inter'}
+  .btn:hover{background:#163e21}
   .btn:active{transform:scale(.99)}
-  .btn:disabled{background:#bcd3c6;cursor:not-allowed}
-  .btn.ghost{background:none;color:var(--green);font-weight:600}
-  .btn.ghost:hover{background:#eef5f0}
-  .btn-row{padding:16px 24px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 26%)}
+  .btn:disabled{background:#c2cabf;cursor:not-allowed}
+  .btn.cta{background:var(--turmeric);color:var(--kale);box-shadow:0 6px 18px rgba(244,178,62,.4)}
+  .btn.cta:hover{background:var(--turmeric-deep)}
+  .btn.ghost{background:none;color:var(--kale);font-weight:600;box-shadow:none}
+  .btn.ghost:hover{background:#eae3d2}
+  .btn-row{padding:16px 24px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--cream) 26%)}
 
-  /* selectable cards */
-  .opt{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color .15s, background .15s}
-  .opt:hover{border-color:#bcd3c6}
-  .opt.sel{border-color:var(--green);background:var(--green-light)}
-  .opt .ic{font-size:26px;width:34px;text-align:center}
-  .opt .t{font-weight:700;font-size:16px}
+  /* selectable option cards */
+  .opt{background:var(--card);border:2px solid var(--line);border-radius:15px;padding:14px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color .15s, background .15s}
+  .opt:hover{border-color:#cdbf9e}
+  .opt .pin{width:42px;height:42px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+  .opt .pin span{transform:rotate(45deg);font-size:20px;line-height:1}
+  .opt .ic{font-size:24px;width:34px;text-align:center;flex-shrink:0}
+  .opt .t{font-family:'Poppins';font-weight:700;font-size:16px;color:var(--kale)}
   .opt .d{font-size:13px;color:var(--muted)}
-  .opt .chk{margin-left:auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0}
-  .opt.sel .chk{background:var(--green);border-color:var(--green)}
+  .opt .chk{margin-left:auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;transition:.15s}
+  .opt.sel .chk{background:var(--kale);border-color:var(--kale)}
 
   /* chips */
   .chips{display:flex;flex-wrap:wrap;gap:10px}
-  .chip{background:var(--card);border:2px solid var(--line);border-radius:99px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
-  .chip:hover{border-color:#bcd3c6}
-  .chip.sel{background:var(--green);border-color:var(--green);color:#fff}
+  .chip{background:var(--card);border:2px solid var(--line);border-radius:99px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;color:var(--ink)}
+  .chip:hover{border-color:#cdbf9e}
+  .chip.sel{background:var(--kale);border-color:var(--kale);color:#fff}
 
   /* budget */
-  .budget-val{text-align:center;font-size:40px;font-weight:800;margin:10px 0 2px}
-  .budget-val span{font-size:18px;color:var(--muted)}
-  input[type=range]{width:100%;accent-color:var(--green);height:6px;margin:18px 0}
+  .budget-val{text-align:center;font-family:'Poppins';font-weight:800;font-size:42px;margin:10px 0 2px;color:var(--kale)}
+  .budget-val span{font-size:18px;color:var(--muted);font-family:'Inter';font-weight:500}
+  input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
   .range-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
 
   /* location */
   .field{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  .field input{border:none;outline:none;font-size:16px;flex:1;font-family:inherit;color:var(--ink);background:none}
-  .loc-btn{display:flex;align-items:center;gap:8px;color:var(--green);font-weight:600;font-size:14px;cursor:pointer;padding:8px 0}
+  .field input{border:none;outline:none;font-size:16px;flex:1;font-family:'Inter';color:var(--ink);background:none}
+  .loc-btn{display:flex;align-items:center;gap:8px;color:var(--kale);font-weight:600;font-size:14px;cursor:pointer;padding:8px 0}
 
   /* results */
-  .results-head{padding:14px 24px 6px}
-  .filterbar{display:flex;gap:8px;overflow-x:auto;padding:6px 24px 14px;scrollbar-width:none}
+  .results-head{padding:16px 24px 4px}
+  .summary{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:8px 16px 14px;padding:14px 16px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:var(--shadow)}
+  .summary .lab{color:var(--muted);font-weight:600;width:100%;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-family:'Poppins'}
+  .summary .s{background:var(--leaf-soft);color:var(--kale);border-radius:8px;padding:4px 10px;font-weight:600;font-size:12px}
+  .summary .s.diet{color:#fff;font-weight:700}
+  .edit{margin-left:auto;color:var(--kale);font-weight:700;font-size:12px;cursor:pointer;background:none;border:none;font-family:'Inter'}
+
+  .filterbar{display:flex;gap:8px;overflow-x:auto;padding:2px 24px 14px;scrollbar-width:none}
   .filterbar::-webkit-scrollbar{display:none}
   .pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
-  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .pill.on{background:var(--kale);color:#fff;border-color:var(--kale)}
 
-  .rcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:0 16px 14px;box-shadow:var(--shadow);overflow:hidden}
+  .rcard{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--kale);border-radius:var(--radius);margin:0 16px 14px;box-shadow:var(--shadow);overflow:hidden}
   .rcard-top{padding:16px 16px 12px;display:flex;gap:12px;align-items:flex-start}
-  .rname{font-weight:800;font-size:17px}
-  .rmeta{font-size:13px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .tag{background:#eef2ef;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;color:#52635a;text-transform:uppercase;letter-spacing:.3px}
+  .rname{font-family:'Poppins';font-weight:700;font-size:17px;color:var(--kale)}
+  .rmeta{font-size:13px;color:var(--muted);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .diet-tag{border-radius:7px;padding:3px 9px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#fff}
+  .tag{background:#efeadd;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;color:#6b7568;text-transform:uppercase;letter-spacing:.3px}
   .fit{margin-left:auto;text-align:center;flex-shrink:0}
-  .fit .badge{font-size:11px;font-weight:800;padding:4px 9px;border-radius:8px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-  .fit-strong{background:var(--green-light);color:var(--green-dark)}
-  .fit-good{background:var(--amber-light);color:var(--amber)}
-  .fit-weak{background:var(--red-light);color:var(--red)}
+  .fit .badge{font-family:'Poppins';font-size:11px;font-weight:700;padding:5px 10px;border-radius:9px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  .fit-strong{background:var(--leaf-soft);color:var(--fit-strong)}
+  .fit-good{background:var(--turmeric-soft);color:var(--fit-good)}
+  .fit-weak{background:#f7e3e2;color:var(--fit-weak)}
 
   .order{padding:0 16px 14px}
-  .order-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
-  .order-item{font-size:16px;font-weight:700;margin-bottom:8px}
-  .mods{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-  .mod{font-size:12px;font-weight:600;border-radius:7px;padding:4px 9px;display:inline-flex;gap:5px;align-items:center}
-  .mod.rm{background:var(--red-light);color:var(--red)}
-  .mod.add{background:var(--green-light);color:var(--green-dark)}
-  .why{font-size:13.5px;color:#3d4f46;background:#f6faf7;border-left:3px solid var(--green);padding:9px 12px;border-radius:0 8px 8px 0;margin-bottom:10px}
-  .macros{display:flex;gap:14px;font-size:13px}
-  .macro b{display:block;font-size:16px}
+  .order-label{font-family:'Poppins';font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+  .order-item{font-family:'Poppins';font-size:16px;font-weight:700;margin-bottom:9px;color:var(--ink)}
+  .mods{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+  .mod{font-size:12px;font-weight:600;border-radius:8px;padding:4px 9px;display:inline-flex;gap:5px;align-items:center}
+  .mod.rm{background:#f7e3e2;color:var(--d-carn)}
+  .mod.add{background:var(--leaf-soft);color:var(--kale)}
+  .why{font-size:13.5px;color:#3d4f46;background:#f6f3e9;border-left:3px solid var(--turmeric);padding:9px 12px;border-radius:0 9px 9px 0;margin-bottom:11px}
+  .macros{display:flex;gap:16px;font-size:13px}
+  .macro b{font-family:'Poppins';display:block;font-size:16px;color:var(--kale)}
   .macro span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
-  .rfoot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:12px 16px;background:#fafcfb}
-  .price{font-weight:800;font-size:16px}
-  .est{font-size:11.5px;color:var(--amber);background:var(--amber-light);padding:3px 8px;border-radius:6px;font-weight:600;display:inline-flex;gap:5px;align-items:center;margin-top:4px}
+  .rfoot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:12px 16px;background:#fbfaf5}
+  .price{font-family:'Poppins';font-weight:800;font-size:17px;color:var(--kale)}
+  .est{font-size:11.5px;color:var(--turmeric-deep);background:var(--turmeric-soft);padding:3px 8px;border-radius:6px;font-weight:600;display:inline-flex;gap:5px;align-items:center;margin-top:4px}
+  .order-btn{width:auto;padding:10px 18px;font-size:14px;border-radius:11px}
 
   .disclaimer{font-size:11.5px;color:var(--muted);padding:6px 28px 28px;text-align:center;line-height:1.6}
-  .allergen-note{font-size:12px;color:var(--amber);background:var(--amber-light);margin:0 16px 16px;padding:11px 14px;border-radius:12px;display:flex;gap:8px;align-items:flex-start}
-
-  .summary{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:0 16px 16px;padding:14px 16px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:var(--shadow)}
-  .summary .lab{color:var(--muted);font-weight:600;width:100%;font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
-  .summary .s{background:var(--green-light);color:var(--green-dark);border-radius:7px;padding:4px 9px;font-weight:700;font-size:12px}
-  .edit{margin-left:auto;color:var(--green);font-weight:700;font-size:12px;cursor:pointer;background:none;border:none}
+  .allergen-note{font-size:12px;color:#7a5a1c;background:var(--turmeric-soft);margin:0 16px 16px;padding:11px 14px;border-radius:12px;display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
+
+<!-- shared logo mark (leaf + pin + turmeric check) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="hcLeaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2F6B3C"/><stop offset="1" stop-color="#1E4F2B"/>
+    </linearGradient>
+    <symbol id="hc-mark" viewBox="0 0 240 260">
+      <path d="M120 12 C176 12 224 56 224 116 C224 176 168 220 120 248 C72 220 16 176 16 116 C16 56 64 12 120 12 Z" fill="url(#hcLeaf)"/>
+      <path d="M82 128 L110 158 L168 92" stroke="#F4B23E" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </symbol>
+  </defs>
+</svg>
+
 <div class="app" id="app">
 
   <!-- WELCOME -->
   <section class="screen active" id="s-welcome">
     <div class="welcome">
-      <div class="logo"><span class="leaf">🥗</span> Healthy Chow</div>
-      <div class="hero-img">🍽️</div>
-      <h1 style="font-size:24px;margin-top:6px">Know exactly what to order, anywhere.</h1>
-      <p class="lead">Tell us your diet. We scan the menus near you and tell you the precise order, modifications included, that keeps you on track.</p>
+      <div class="brandtop">
+        <div class="lockup">
+          <svg class="mark" width="30" height="33"><use href="#hc-mark"/></svg>
+          <div class="wordmark" style="font-size:24px"><span class="h">Healthy</span> <span class="c">Chow</span></div>
+        </div>
+        <div class="tagline">Eat out. Eat right.</div>
+      </div>
+
+      <svg class="mark hero-mark" width="104" height="113"><use href="#hc-mark"/></svg>
+
+      <h1>Eat out anywhere.<br/>Still eat right.</h1>
+      <p class="lead">Healthy Chow is your scout. Tell us how you want to eat and we'll tell you the exact order, modifications and all, at the spots near you.</p>
+
       <div class="pricing">
         <div class="amt">$9<span>.99 / month</span></div>
         <ul>
-          <li>Personalized orders for any diet</li>
-          <li>Off-menu modifications (no bun, no sugar)</li>
-          <li>Chains + local spots near you</li>
+          <li><span class="tick">✓</span> Picks near you for any diet</li>
+          <li><span class="tick">✓</span> Off-menu swaps (no bun, no sugar)</li>
+          <li><span class="tick">✓</span> Big chains and local spots</li>
         </ul>
       </div>
       <div class="spacer"></div>
-      <button class="btn" onclick="go('s-diet')">Start 7-day free trial</button>
+      <button class="btn cta" onclick="go('s-diet')">Start 7-day free trial</button>
       <button class="btn ghost" onclick="go('s-diet')">I already have an account</button>
     </div>
   </section>
@@ -157,8 +222,8 @@
   <section class="screen" id="s-diet">
     <div class="topbar"><button class="back" onclick="go('s-welcome')">←</button><div class="progress"><i style="width:20%"></i></div></div>
     <div class="pad">
-      <h2>What diet are you following?</h2>
-      <p class="sub">We'll tailor every recommendation to this.</p>
+      <h2>How do you want to eat?</h2>
+      <p class="sub">Pick your plan. We'll tailor every pick to it.</p>
       <div id="dietOpts"></div>
     </div>
     <div class="btn-row"><button class="btn" id="dietNext" disabled onclick="go('s-allergy')">Continue</button></div>
@@ -168,8 +233,8 @@
   <section class="screen" id="s-allergy">
     <div class="topbar"><button class="back" onclick="go('s-diet')">←</button><div class="progress"><i style="width:40%"></i></div></div>
     <div class="pad">
-      <h2>Anything to avoid?</h2>
-      <p class="sub">Allergies and foods you never want recommended. Optional, but it makes results safer.</p>
+      <h2>Anything to skip?</h2>
+      <p class="sub">Allergies and foods you never want to see. Optional, but it makes your picks safer.</p>
       <div class="chips" id="avoidChips"></div>
     </div>
     <div class="btn-row"><button class="btn" onclick="go('s-style')">Continue</button></div>
@@ -179,8 +244,8 @@
   <section class="screen" id="s-style">
     <div class="topbar"><button class="back" onclick="go('s-allergy')">←</button><div class="progress"><i style="width:60%"></i></div></div>
     <div class="pad">
-      <h2>How do you want to eat?</h2>
-      <p class="sub">Pick any that apply.</p>
+      <h2>Where are you eating?</h2>
+      <p class="sub">Pick any that fit today.</p>
       <div id="styleOpts"></div>
     </div>
     <div class="btn-row"><button class="btn" id="styleNext" disabled onclick="go('s-budget')">Continue</button></div>
@@ -190,8 +255,8 @@
   <section class="screen" id="s-budget">
     <div class="topbar"><button class="back" onclick="go('s-style')">←</button><div class="progress"><i style="width:80%"></i></div></div>
     <div class="pad">
-      <h2>What's your budget per meal?</h2>
-      <p class="sub">We'll only show orders that fit.</p>
+      <h2>What's your budget?</h2>
+      <p class="sub">Per meal. We'll only show picks that fit.</p>
       <div class="budget-val">Up to $<span id="budgetNum">18</span></div>
       <input type="range" id="budget" min="8" max="40" value="18" oninput="document.getElementById('budgetNum').innerText=this.value" />
       <div class="range-labels"><span>$8</span><span>$40+</span></div>
@@ -204,23 +269,26 @@
     <div class="topbar"><button class="back" onclick="go('s-budget')">←</button><div class="progress"><i style="width:95%"></i></div></div>
     <div class="pad">
       <h2>Where are you?</h2>
-      <p class="sub">We'll scan menus within a few miles.</p>
+      <p class="sub">We'll read the menus within a few miles.</p>
       <div class="field">📍 <input id="locInput" value="Sea Girt, NJ" /></div>
       <div class="loc-btn" onclick="document.getElementById('locInput').value='Current location'">🎯 Use my current location</div>
     </div>
-    <div class="btn-row"><button class="btn" onclick="buildResults();go('s-results')">Find my orders</button></div>
+    <div class="btn-row"><button class="btn cta" onclick="buildResults();go('s-results')">Find my picks</button></div>
   </section>
 
   <!-- RESULTS -->
   <section class="screen" id="s-results">
     <div class="results-head">
-      <div class="logo" style="font-size:19px"><span class="leaf" style="width:28px;height:28px;font-size:16px">🥗</span> Healthy Chow</div>
+      <div class="lockup">
+        <svg class="mark" width="24" height="26"><use href="#hc-mark"/></svg>
+        <div class="wordmark" style="font-size:19px"><span class="h">Healthy</span> <span class="c">Chow</span></div>
+      </div>
     </div>
     <div class="summary" id="summary"></div>
-    <div class="allergen-note">⚠️ <span>Recommendations are dietary guidance, not medical or allergen advice. Always confirm ingredients with the restaurant, especially for allergies.</span></div>
+    <div class="allergen-note">⚠️ <span>Picks are dietary guidance, not medical or allergen advice. Always confirm ingredients with the restaurant, especially for allergies.</span></div>
     <div class="filterbar" id="filterbar"></div>
     <div id="resultsList"></div>
-    <p class="disclaimer">Healthy Chow provides general wellness guidance and is not a substitute for professional medical or nutritional advice. Nutrition values for chains are sourced from published data; values marked <em>Estimated</em> are inferred from menu descriptions and are approximate.</p>
+    <p class="disclaimer">Healthy Chow provides general wellness guidance and is not a substitute for professional medical or nutritional advice. Nutrition values for chains come from published data; values marked <em>Estimated</em> are inferred from menu descriptions and are approximate.</p>
     <div class="pad"><button class="btn ghost" onclick="go('s-diet')">↻ Start over</button></div>
   </section>
 
@@ -231,30 +299,32 @@
 const state = { diet:null, avoid:[], styles:[], budget:18, loc:"Sea Girt, NJ" };
 
 const DIETS = [
-  {id:'keto', ic:'🥑', t:'Keto', d:'Very low carb, high fat'},
-  {id:'low-carb', ic:'🥬', t:'Low-Carb', d:'Reduced carbs, balanced'},
-  {id:'mediterranean', ic:'🫒', t:'Mediterranean', d:'Fish, veg, olive oil, whole grains'},
-  {id:'paleo', ic:'🍖', t:'Paleo', d:'Whole foods, no grains or dairy'},
-  {id:'carnivore', ic:'🥩', t:'Carnivore', d:'Animal products only'},
+  {id:'keto', ic:'🥑', t:'Keto', d:'High fat, very low carb', color:'#7A4FA0'},
+  {id:'low-carb', ic:'🥬', t:'Low-Carb', d:'Cut starch, keep protein and veg', color:'#E07A3E'},
+  {id:'mediterranean', ic:'🐟', t:'Mediterranean', d:'Fish, olive oil, veg, whole grains', color:'#2F7DA3'},
+  {id:'paleo', ic:'🍗', t:'Paleo', d:'Whole foods, no grains or dairy', color:'#9C5B33'},
+  {id:'carnivore', ic:'🥩', t:'Carnivore', d:'Animal foods only', color:'#B0413E'},
 ];
+const dietColor = id => (DIETS.find(d=>d.id===id)||{}).color || '#1E4F2B';
+const dietName = id => (DIETS.find(d=>d.id===id)||{}).t || '';
+
 const AVOID = ['Gluten','Dairy','Nuts','Shellfish','Soy','Pork','Eggs','Cilantro'];
 const STYLES = [
   {id:'dine-in', ic:'🍷', t:'Dine-in', d:'Sit-down restaurants'},
   {id:'take-out', ic:'🥡', t:'Take-out', d:'Order and go'},
-  {id:'fast-casual', ic:'🥙', t:'Fast-casual', d:'Chipotle, Sweetgreen, etc.'},
+  {id:'fast-casual', ic:'🥙', t:'Fast-casual', d:'Chipotle, Sweetgreen, and the like'},
   {id:'fast-food', ic:'🍔', t:'Fast food', d:'Drive-thru chains'},
 ];
 
 /* ---------- mock restaurant + recommendation data ---------- */
-/* fit: strong | good | weak ; mods: {rm:[], add:[]} ; estimated=true for independents */
 const RESTAURANTS = [
   {
     name:"McDonald's", style:'fast-food', tag:'Fast Food', dist:'0.8 mi', priceVal:8, independent:false,
     recs:{
-      keto:{item:'Double Quarter Pounder, patty only', mods:{rm:['No bun','No ketchup'],add:['Add cheese','Side of bacon']}, why:'The bun (~40g carbs) and ketchup (added sugar) are the only off-plan parts. Patty + cheese is nearly zero carb.', carbs:3, sugar:0, protein:30, fit:'strong', price:7.49},
+      keto:{item:'Double Quarter Pounder, patty only', mods:{rm:['No bun','No ketchup'],add:['Add cheese','Side of bacon']}, why:'The bun (~40g carbs) and ketchup (added sugar) are the only off-plan parts. Patty plus cheese is nearly zero carb.', carbs:3, sugar:0, protein:30, fit:'strong', price:7.49},
       'low-carb':{item:'Double Quarter Pounder', mods:{rm:['Open-face, top bun only','No ketchup'],add:['Extra patty']}, why:'Dropping half the bun and the ketchup roughly halves the carbs while keeping it filling.', carbs:19, sugar:4, protein:32, fit:'good', price:7.49},
       carnivore:{item:'Double Quarter Pounder, patty only', mods:{rm:['No bun','No ketchup','No pickles','No onion'],add:['Add 2 sausage patties']}, why:'Beef and cheese only. Strip everything plant-based and you have a clean carnivore plate.', carbs:1, sugar:0, protein:46, fit:'strong', price:9.29},
-      paleo:{item:'Grilled chicken, no bun', mods:{rm:['No bun','No mayo','No cheese'],add:['Side salad']}, why:'Grilled chicken works, but dairy and the seed-oil mayo are off-plan. Lean protein + side salad is the best fit here.', carbs:8, sugar:3, protein:28, fit:'good', price:6.99},
+      paleo:{item:'Grilled chicken, no bun', mods:{rm:['No bun','No mayo','No cheese'],add:['Side salad']}, why:'Grilled chicken works, but dairy and the seed-oil mayo are off-plan. Lean protein plus a side salad is the best fit here.', carbs:8, sugar:3, protein:28, fit:'good', price:6.99},
     }
   },
   {
@@ -271,7 +341,7 @@ const RESTAURANTS = [
     name:"Sal's Corner Deli", style:'take-out', tag:'Local • Take-out', dist:'0.4 mi', priceVal:11, independent:true,
     recs:{
       keto:{item:'Chef Salad', mods:{rm:['No croutons','No shredded carrot'],add:['Ranch dressing','Extra turkey & ham','Avocado']}, why:'Croutons and carrots are the hidden carbs. Swap the sweet vinaigrette for cream-based ranch and add fat.', carbs:8, sugar:3, protein:29, fit:'good', price:10.50},
-      'low-carb':{item:'Italian Cobb Salad', mods:{rm:['No croutons'],add:['Olive oil & vinegar','Extra egg']}, why:'A loaded cobb is naturally low-carb once the croutons are gone. Oil & vinegar keeps sugar down.', carbs:12, sugar:4, protein:26, fit:'good', price:9.75},
+      'low-carb':{item:'Italian Cobb Salad', mods:{rm:['No croutons'],add:['Olive oil & vinegar','Extra egg']}, why:'A loaded cobb is naturally low-carb once the croutons are gone. Oil and vinegar keeps sugar down.', carbs:12, sugar:4, protein:26, fit:'good', price:9.75},
       mediterranean:{item:'Greek Salad with Grilled Chicken', mods:{rm:['Light feta'],add:['Extra olives','Olive oil','Lemon']}, why:'Greens, olives, olive oil, and lean chicken. This is the Mediterranean template. Just go easy on the feta.', carbs:14, sugar:6, protein:31, fit:'strong', price:11.00},
       paleo:{item:'Grilled Chicken Salad', mods:{rm:['No croutons','No cheese'],add:['Olive oil & vinegar','Avocado']}, why:'Chicken, greens, and avocado with no grains or dairy. Skip the deli cheese and the creamy dressings.', carbs:10, sugar:3, protein:30, fit:'good', price:10.25},
     }
@@ -280,7 +350,7 @@ const RESTAURANTS = [
     name:"The Anchor Tavern", style:'dine-in', tag:'Dine-in • Seafood', dist:'1.9 mi', priceVal:24, independent:true,
     recs:{
       mediterranean:{item:'Grilled Branzino', mods:{rm:['Hold the bread'],add:['Double sautéed spinach','Lemon & olive oil']}, why:'Whole grilled fish with greens in olive oil is the gold standard for Mediterranean. Outstanding fit.', carbs:9, sugar:2, protein:42, fit:'strong', price:23.00},
-      keto:{item:'Ribeye Steak', mods:{rm:['No potato'],add:['Sub asparagus','Garlic butter','Side Caesar, no croutons']}, why:'Steak + green veg + butter is textbook keto. Swap the starch side and lose the croutons.', carbs:6, sugar:1, protein:48, fit:'strong', price:26.50},
+      keto:{item:'Ribeye Steak', mods:{rm:['No potato'],add:['Sub asparagus','Garlic butter','Side Caesar, no croutons']}, why:'Steak plus green veg plus butter is textbook keto. Swap the starch side and lose the croutons.', carbs:6, sugar:1, protein:48, fit:'strong', price:26.50},
       carnivore:{item:'16oz Ribeye', mods:{rm:['No sides','No sauce'],add:['Add shrimp skewer','Butter']}, why:'Just the steak, add seafood for variety. The cleanest carnivore plate on this list.', carbs:0, sugar:0, protein:62, fit:'strong', price:28.00},
       paleo:{item:'Pan-Seared Salmon', mods:{rm:['No butter','No potato'],add:['Roasted vegetables','Olive oil']}, why:'Wild fish and roasted veg with no dairy or grains. Ask for olive oil instead of butter to keep it paleo.', carbs:12, sugar:4, protein:38, fit:'good', price:24.00},
     }
@@ -308,8 +378,13 @@ const RESTAURANTS = [
 function renderDiets(){
   const c=document.getElementById('dietOpts'); c.innerHTML='';
   DIETS.forEach(d=>{
-    const el=document.createElement('div'); el.className='opt'+(state.diet===d.id?' sel':'');
-    el.innerHTML=`<div class="ic">${d.ic}</div><div><div class="t">${d.t}</div><div class="d">${d.d}</div></div><div class="chk">✓</div>`;
+    const sel=state.diet===d.id;
+    const el=document.createElement('div'); el.className='opt'+(sel?' sel':'');
+    el.style.borderColor = sel ? d.color : '';
+    el.style.background = sel ? d.color+'14' : '';
+    el.innerHTML=`<div class="pin" style="background:${d.color}"><span>${d.ic}</span></div>
+      <div><div class="t">${d.t}</div><div class="d">${d.d}</div></div>
+      <div class="chk" style="${sel?`background:${d.color};border-color:${d.color}`:''}">✓</div>`;
     el.onclick=()=>{state.diet=d.id;renderDiets();document.getElementById('dietNext').disabled=false;};
     c.appendChild(el);
   });
@@ -339,47 +414,47 @@ const FITRANK={strong:0,good:1,weak:2};
 function buildResults(){
   state.budget=+document.getElementById('budget').value;
   state.loc=document.getElementById('locInput').value||'your area';
+  const color=dietColor(state.diet);
 
   // summary chips
-  const dietName=DIETS.find(d=>d.id===state.diet).t;
   const styleNames=state.styles.map(s=>STYLES.find(x=>x.id===s).t);
-  let sum=`<div class="lab">Showing orders near ${state.loc}</div>`;
-  sum+=`<span class="s">${dietName}</span>`;
+  let sum=`<div class="lab">Your picks near ${state.loc}</div>`;
+  sum+=`<span class="s diet" style="background:${color}">${dietName(state.diet)}</span>`;
   styleNames.forEach(n=>sum+=`<span class="s">${n}</span>`);
   sum+=`<span class="s">≤ $${state.budget}</span>`;
   state.avoid.forEach(a=>sum+=`<span class="s">No ${a}</span>`);
   sum+=`<button class="edit" onclick="go('s-diet')">Edit</button>`;
   document.getElementById('summary').innerHTML=sum;
 
-  // filter: has a rec for chosen diet, matches dining style (if any chosen), within budget
+  // filter + sort
   let list=RESTAURANTS.filter(r=>{
     const rec=r.recs[state.diet]; if(!rec) return false;
     if(state.styles.length && !state.styles.includes(r.style)) return false;
     if(rec.price>state.budget) return false;
     return true;
   });
-  // sort by fit then distance
   list.sort((a,b)=> FITRANK[a.recs[state.diet].fit]-FITRANK[b.recs[state.diet].fit] || parseFloat(a.dist)-parseFloat(b.dist));
 
   const wrap=document.getElementById('resultsList'); wrap.innerHTML='';
   if(!list.length){
-    wrap.innerHTML=`<div style="text-align:center;padding:40px 30px;color:var(--muted)"><div style="font-size:40px">🔍</div><p style="margin-top:10px">No strong matches under $${state.budget} for ${dietName} with those dining styles. Try raising the budget or adding a dining style.</p></div>`;
+    wrap.innerHTML=`<div style="text-align:center;padding:40px 30px;color:var(--muted)"><div style="font-size:40px">🔍</div><p style="margin-top:10px">No strong picks under $${state.budget} for ${dietName(state.diet)} with those dining styles. Try raising the budget or adding a dining style.</p></div>`;
     return;
   }
   list.forEach(r=>{
     const rec=r.recs[state.diet];
-    const fitLabel={strong:'Great fit',good:'Good fit',weak:'Closest option'}[rec.fit];
+    const fitLabel={strong:'Great fit',good:'Good fit',weak:'Closest pick'}[rec.fit];
     const mods=[
       ...rec.mods.rm.map(m=>`<span class="mod rm">✕ ${m}</span>`),
       ...rec.mods.add.map(m=>`<span class="mod add">＋ ${m.replace(/^(Add |Sub |Side of |Extra )/,'')}</span>`)
     ].join('');
     const est = r.independent ? `<div class="est">ⓘ Estimated from menu description</div>` : '';
     const card=document.createElement('div'); card.className='rcard';
+    card.style.borderLeftColor=color;
     card.innerHTML=`
       <div class="rcard-top">
         <div>
           <div class="rname">${r.name}</div>
-          <div class="rmeta"><span class="tag">${r.tag}</span> · ${r.dist}</div>
+          <div class="rmeta"><span class="diet-tag" style="background:${color}">${dietName(state.diet)}</span> <span class="tag">${r.tag}</span> · ${r.dist}</div>
         </div>
         <div class="fit"><span class="badge fit-${rec.fit}">${fitLabel}</span></div>
       </div>
@@ -396,14 +471,14 @@ function buildResults(){
       </div>
       <div class="rfoot">
         <div><div class="price">$${rec.price.toFixed(2)}</div>${est}</div>
-        <button class="btn" style="width:auto;padding:10px 18px;font-size:14px">Order →</button>
+        <button class="btn order-btn">Order →</button>
       </div>`;
     wrap.appendChild(card);
   });
 
-  // filter pills (visual)
+  // filter pills
   const fb=document.getElementById('filterbar');
-  fb.innerHTML=`<span class="pill on">${dietName}</span>`+
+  fb.innerHTML=`<span class="pill on" style="background:${color};border-color:${color}">${dietName(state.diet)}</span>`+
     STYLES.map(s=>`<span class="pill${state.styles.includes(s.id)?' on':''}">${s.t}</span>`).join('')+
     `<span class="pill">≤ $${state.budget}</span>`;
 }

@@ -24,3 +24,6 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Internal brand source files (public assets are copied into /assets)
+marketing files/
