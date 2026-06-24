@@ -1,0 +1,443 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Mark } from "./Mark";
+import {
+  AVOID,
+  DIETS,
+  RESTAURANTS,
+  STYLES,
+  dietColor,
+  dietName,
+  type DietId,
+  type Fit,
+  type StyleId,
+} from "@/lib/data";
+
+type Screen = "welcome" | "diet" | "allergy" | "style" | "budget" | "loc" | "results";
+
+const FITRANK: Record<Fit, number> = { strong: 0, good: 1, weak: 2 };
+const FIT_LABEL: Record<Fit, string> = { strong: "Great fit", good: "Good fit", weak: "Closest pick" };
+
+function Wordmark({ size }: { size: number }) {
+  return (
+    <div className="wordmark" style={{ fontSize: size }}>
+      <span className="h">Healthy</span> <span className="c">Chow</span>
+    </div>
+  );
+}
+
+export default function HealthyChowApp() {
+  const [screen, setScreen] = useState<Screen>("welcome");
+  const [diet, setDiet] = useState<DietId | null>(null);
+  const [avoid, setAvoid] = useState<string[]>([]);
+  const [styles, setStyles] = useState<StyleId[]>([]);
+  const [budget, setBudget] = useState(18);
+  const [loc, setLoc] = useState("Sea Girt, NJ");
+
+  const go = (s: Screen) => {
+    setScreen(s);
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
+  };
+  const toggle = <T,>(list: T[], v: T, set: (x: T[]) => void) =>
+    set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+
+  const color = dietColor(diet);
+
+  const results = useMemo(() => {
+    if (!diet) return [];
+    return RESTAURANTS.filter((r) => {
+      const rec = r.recs[diet];
+      if (!rec) return false;
+      if (styles.length && !styles.includes(r.style)) return false;
+      if (rec.price > budget) return false;
+      return true;
+    }).sort((a, b) => {
+      const fa = a.recs[diet]!.fit;
+      const fb = b.recs[diet]!.fit;
+      return FITRANK[fa] - FITRANK[fb] || parseFloat(a.dist) - parseFloat(b.dist);
+    });
+  }, [diet, styles, budget]);
+
+  return (
+    <div className="app">
+      {/* WELCOME */}
+      {screen === "welcome" && (
+        <section className="screen">
+          <div className="welcome">
+            <div className="brandtop">
+              <div className="lockup">
+                <Mark size={30} />
+                <Wordmark size={24} />
+              </div>
+              <div className="tagline">Eat out. Eat right.</div>
+            </div>
+
+            <Mark size={104} className="hero-mark" />
+
+            <h1>
+              Eat out anywhere.
+              <br />
+              Still eat right.
+            </h1>
+            <p className="lead">
+              Healthy Chow is your scout. Tell us how you want to eat and we&apos;ll tell you the
+              exact order, modifications and all, at the spots near you.
+            </p>
+
+            <div className="pricing">
+              <div className="amt">
+                $9<span>.99 / month</span>
+              </div>
+              <ul>
+                <li>
+                  <span className="tick">✓</span> Picks near you for any diet
+                </li>
+                <li>
+                  <span className="tick">✓</span> Off-menu swaps (no bun, no sugar)
+                </li>
+                <li>
+                  <span className="tick">✓</span> Big chains and local spots
+                </li>
+              </ul>
+            </div>
+            <div className="spacer" />
+            <button className="btn cta" onClick={() => go("diet")}>
+              Start 7-day free trial
+            </button>
+            <button className="btn ghost" onClick={() => go("diet")}>
+              I already have an account
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* DIET */}
+      {screen === "diet" && (
+        <section className="screen">
+          <div className="topbar">
+            <button className="back" onClick={() => go("welcome")}>
+              ←
+            </button>
+            <div className="progress">
+              <i style={{ width: "20%" }} />
+            </div>
+          </div>
+          <div className="pad">
+            <h2>How do you want to eat?</h2>
+            <p className="sub">Pick your plan. We&apos;ll tailor every pick to it.</p>
+            {DIETS.map((d) => {
+              const sel = diet === d.id;
+              return (
+                <button
+                  key={d.id}
+                  className={`opt${sel ? " sel" : ""}`}
+                  style={sel ? { borderColor: d.color, background: d.color + "14" } : undefined}
+                  onClick={() => setDiet(d.id)}
+                >
+                  <div className="pin" style={{ background: d.color }}>
+                    <span>{d.ic}</span>
+                  </div>
+                  <div>
+                    <div className="t">{d.t}</div>
+                    <div className="d">{d.d}</div>
+                  </div>
+                  <div
+                    className="chk"
+                    style={sel ? { background: d.color, borderColor: d.color } : undefined}
+                  >
+                    ✓
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="btn-row">
+            <button className="btn" disabled={!diet} onClick={() => go("allergy")}>
+              Continue
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* ALLERGIES */}
+      {screen === "allergy" && (
+        <section className="screen">
+          <div className="topbar">
+            <button className="back" onClick={() => go("diet")}>
+              ←
+            </button>
+            <div className="progress">
+              <i style={{ width: "40%" }} />
+            </div>
+          </div>
+          <div className="pad">
+            <h2>Anything to skip?</h2>
+            <p className="sub">
+              Allergies and foods you never want to see. Optional, but it makes your picks safer.
+            </p>
+            <div className="chips">
+              {AVOID.map((a) => (
+                <button
+                  key={a}
+                  className={`chip${avoid.includes(a) ? " sel" : ""}`}
+                  onClick={() => toggle(avoid, a, setAvoid)}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="btn-row">
+            <button className="btn" onClick={() => go("style")}>
+              Continue
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* DINING STYLE */}
+      {screen === "style" && (
+        <section className="screen">
+          <div className="topbar">
+            <button className="back" onClick={() => go("allergy")}>
+              ←
+            </button>
+            <div className="progress">
+              <i style={{ width: "60%" }} />
+            </div>
+          </div>
+          <div className="pad">
+            <h2>Where are you eating?</h2>
+            <p className="sub">Pick any that fit today.</p>
+            {STYLES.map((s) => {
+              const on = styles.includes(s.id);
+              return (
+                <button
+                  key={s.id}
+                  className={`opt${on ? " sel" : ""}`}
+                  onClick={() => toggle(styles, s.id, setStyles)}
+                >
+                  <div className="ic">{s.ic}</div>
+                  <div>
+                    <div className="t">{s.t}</div>
+                    <div className="d">{s.d}</div>
+                  </div>
+                  <div className="chk">✓</div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="btn-row">
+            <button className="btn" disabled={styles.length === 0} onClick={() => go("budget")}>
+              Continue
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* BUDGET */}
+      {screen === "budget" && (
+        <section className="screen">
+          <div className="topbar">
+            <button className="back" onClick={() => go("style")}>
+              ←
+            </button>
+            <div className="progress">
+              <i style={{ width: "80%" }} />
+            </div>
+          </div>
+          <div className="pad">
+            <h2>What&apos;s your budget?</h2>
+            <p className="sub">Per meal. We&apos;ll only show picks that fit.</p>
+            <div className="budget-val">
+              Up to ${budget}
+            </div>
+            <input
+              type="range"
+              min={8}
+              max={40}
+              value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+            />
+            <div className="range-labels">
+              <span>$8</span>
+              <span>$40+</span>
+            </div>
+          </div>
+          <div className="btn-row">
+            <button className="btn" onClick={() => go("loc")}>
+              Continue
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* LOCATION */}
+      {screen === "loc" && (
+        <section className="screen">
+          <div className="topbar">
+            <button className="back" onClick={() => go("budget")}>
+              ←
+            </button>
+            <div className="progress">
+              <i style={{ width: "95%" }} />
+            </div>
+          </div>
+          <div className="pad">
+            <h2>Where are you?</h2>
+            <p className="sub">We&apos;ll read the menus within a few miles.</p>
+            <div className="field">
+              📍{" "}
+              <input value={loc} onChange={(e) => setLoc(e.target.value)} />
+            </div>
+            <button className="loc-btn" onClick={() => setLoc("Current location")}>
+              🎯 Use my current location
+            </button>
+          </div>
+          <div className="btn-row">
+            <button className="btn cta" onClick={() => go("results")}>
+              Find my picks
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* RESULTS */}
+      {screen === "results" && (
+        <section className="screen">
+          <div className="results-head">
+            <div className="lockup">
+              <Mark size={24} />
+              <Wordmark size={19} />
+            </div>
+          </div>
+
+          <div className="summary">
+            <div className="lab">Your picks near {loc}</div>
+            <span className="s diet" style={{ background: color }}>
+              {dietName(diet)}
+            </span>
+            {styles.map((s) => (
+              <span key={s} className="s">
+                {STYLES.find((x) => x.id === s)?.t}
+              </span>
+            ))}
+            <span className="s">≤ ${budget}</span>
+            {avoid.map((a) => (
+              <span key={a} className="s">
+                No {a}
+              </span>
+            ))}
+            <button className="edit" onClick={() => go("diet")}>
+              Edit
+            </button>
+          </div>
+
+          <div className="allergen-note">
+            ⚠️{" "}
+            <span>
+              Picks are dietary guidance, not medical or allergen advice. Always confirm ingredients
+              with the restaurant, especially for allergies.
+            </span>
+          </div>
+
+          <div className="filterbar">
+            <span className="pill on" style={{ background: color, borderColor: color }}>
+              {dietName(diet)}
+            </span>
+            {STYLES.map((s) => (
+              <span key={s.id} className={`pill${styles.includes(s.id) ? " on" : ""}`}>
+                {s.t}
+              </span>
+            ))}
+            <span className="pill">≤ ${budget}</span>
+          </div>
+
+          {results.length === 0 ? (
+            <div className="empty">
+              <div style={{ fontSize: 40 }}>🔍</div>
+              <p style={{ marginTop: 10 }}>
+                No strong picks under ${budget} for {dietName(diet)} with those dining styles. Try
+                raising the budget or adding a dining style.
+              </p>
+            </div>
+          ) : (
+            results.map((r) => {
+              const rec = r.recs[diet!]!;
+              return (
+                <div key={r.name} className="rcard" style={{ borderLeftColor: color }}>
+                  <div className="rcard-top">
+                    <div>
+                      <div className="rname">{r.name}</div>
+                      <div className="rmeta">
+                        <span className="diet-tag" style={{ background: color }}>
+                          {dietName(diet)}
+                        </span>{" "}
+                        <span className="tag">{r.tag}</span> · {r.dist}
+                      </div>
+                    </div>
+                    <div className="fit">
+                      <span className={`badge fit-${rec.fit}`}>{FIT_LABEL[rec.fit]}</span>
+                    </div>
+                  </div>
+                  <div className="order">
+                    <div className="order-label">Order this</div>
+                    <div className="order-item">{rec.item}</div>
+                    <div className="mods">
+                      {rec.mods.rm.map((m) => (
+                        <span key={m} className="mod rm">
+                          ✕ {m}
+                        </span>
+                      ))}
+                      {rec.mods.add.map((m) => (
+                        <span key={m} className="mod add">
+                          ＋ {m.replace(/^(Add |Sub |Side of |Extra )/, "")}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="why">{rec.why}</div>
+                    <div className="macros">
+                      <div className="macro">
+                        <b>{rec.carbs}g</b>
+                        <span>Net carbs</span>
+                      </div>
+                      <div className="macro">
+                        <b>{rec.sugar}g</b>
+                        <span>Sugar</span>
+                      </div>
+                      <div className="macro">
+                        <b>{rec.protein}g</b>
+                        <span>Protein</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rfoot">
+                    <div>
+                      <div className="price">${rec.price.toFixed(2)}</div>
+                      {r.independent && (
+                        <div className="est">ⓘ Estimated from menu description</div>
+                      )}
+                    </div>
+                    <button className="btn order-btn">Order →</button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          <p className="disclaimer">
+            Healthy Chow provides general wellness guidance and is not a substitute for professional
+            medical or nutritional advice. Nutrition values for chains come from published data;
+            values marked <em>Estimated</em> are inferred from menu descriptions and are approximate.
+          </p>
+          <div className="pad">
+            <button className="btn ghost" onClick={() => go("diet")}>
+              ↻ Start over
+            </button>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}

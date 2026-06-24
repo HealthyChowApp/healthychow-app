@@ -1,33 +1,56 @@
 # Healthy Chow
 
-A subscription web app that tells health-conscious users exactly what to order at
-restaurants near them, including off-menu modifications, to fit their chosen diet
+Eat out. Eat right. A subscription web app that tells you exactly what to order at
+restaurants near you, including off-menu modifications, to fit your chosen diet
 (keto, low-carb, Mediterranean, paleo, carnivore).
 
-## Status
+## Stack
 
-This repository currently holds the **clickable front-end prototype** (`index.html`),
-a single self-contained static page with hand-authored sample data. There is no build
-step, backend, auth, or live API yet.
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **Tailwind v4** (CSS-first) plus a brand design system in `app/globals.css`
+- Deployed on **Vercel**, custom domain `healthychowapp.com`
 
-Open `index.html` in any browser to run it, or deploy it as a static site (Vercel).
+## Status: Milestone 1 (production foundation)
 
-## Prototype flow
+The app is a real Next.js project rendering the branded onboarding flow and
+recommendation results from **mock data** (`lib/data.ts`). Live data, accounts, and
+billing arrive in later milestones.
 
-1. Welcome / subscription pitch
-2. Diet selection
-3. Allergies and foods to avoid
-4. Dining style (dine-in, take-out, fast-casual, fast food)
-5. Budget per meal
-6. Location
-7. Recommendation results, with per-item modifications, diet-fit badges, and
-   estimated-nutrition labels on independent restaurants.
+The original single-file static prototype is preserved at `/prototype.html`.
+
+## Project structure
+
+```
+app/
+  layout.tsx        root layout, brand fonts (Poppins + Inter), logo mark defs
+  page.tsx          renders the app
+  globals.css       brand design system (Kale / Turmeric / Cream)
+  icon.png          favicon (brand app icon)
+components/
+  HealthyChowApp.tsx  the interactive onboarding + results flow (client)
+  Mark.tsx            reusable leaf-pin-check logo mark
+lib/
+  data.ts           typed diets, dining styles, and mock restaurant data
+public/
+  assets/           brand logo + app icon
+  prototype.html    the original static prototype (reference)
+```
+
+## Develop
+
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build
+```
 
 ## Roadmap
 
-- **Phase 1 (MVP):** chains-only, real menu + nutrition data, restaurant discovery API.
-- **Phase 2:** independent restaurants via ingredient inference from menu text.
-- **Phase 3:** accounts, saved diet profiles, and subscriptions (Supabase + Stripe).
+1. **Production foundation** (done) — Next.js app, branded UI, mock data.
+2. **Live discovery** — Google Places for real "restaurants near you."
+3. **Recommendation engine** — chain nutrition data + Claude modification engine.
+4. **Accounts** — Supabase auth, saved diet profiles, waitlist.
+5. **Subscriptions** — Stripe billing.
 
 ## License
 
