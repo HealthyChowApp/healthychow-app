@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Healthy Chow Prototype</title>
+<style>
+  :root{
+    --green:#1f9d55; --green-dark:#157347; --green-light:#e8f6ee;
+    --amber:#b7791f; --amber-light:#fdf3e0;
+    --red:#c0392b; --red-light:#fdecea;
+    --ink:#1a2b22; --muted:#67786f; --line:#e2e9e4;
+    --bg:#f5f8f6; --card:#ffffff;
+    --shadow:0 1px 3px rgba(20,60,40,.08),0 6px 24px rgba(20,60,40,.06);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:40px}
+  .screen{display:none;animation:fade .3s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 20px 10px;position:sticky;top:0;background:var(--bg);z-index:5}
+  .back{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .back:hover{background:#eaefeb}
+  .progress{flex:1;height:6px;background:#e2e9e4;border-radius:99px;overflow:hidden}
+  .progress > i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .35s ease;width:0%}
+
+  .pad{padding:8px 24px 24px}
+  h1{font-size:26px;letter-spacing:-.5px;margin-bottom:8px}
+  h2{font-size:22px;letter-spacing:-.3px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:15px;margin-bottom:22px}
+
+  /* brand / welcome */
+  .welcome{padding:64px 28px 28px;text-align:center;display:flex;flex-direction:column;min-height:100vh}
+  .logo{font-size:30px;font-weight:800;letter-spacing:-1px;display:inline-flex;align-items:center;gap:10px;justify-content:center}
+  .logo .leaf{width:38px;height:38px;background:var(--green);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:22px}
+  .hero-img{font-size:74px;margin:36px 0 8px}
+  .welcome p.lead{font-size:17px;color:var(--muted);max-width:340px;margin:6px auto 0}
+  .pricing{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:30px auto 0;max-width:340px;box-shadow:var(--shadow)}
+  .pricing .amt{font-size:34px;font-weight:800}
+  .pricing .amt span{font-size:15px;color:var(--muted);font-weight:500}
+  .pricing ul{list-style:none;text-align:left;margin-top:14px;font-size:14px;color:var(--ink)}
+  .pricing li{padding:5px 0;display:flex;gap:10px;align-items:flex-start}
+  .pricing li:before{content:"✓";color:var(--green);font-weight:800}
+  .spacer{flex:1}
+
+  /* buttons */
+  .btn{display:block;width:100%;background:var(--green);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;transition:transform .05s, background .2s;font-family:inherit}
+  .btn:hover{background:var(--green-dark)}
+  .btn:active{transform:scale(.99)}
+  .btn:disabled{background:#bcd3c6;cursor:not-allowed}
+  .btn.ghost{background:none;color:var(--green);font-weight:600}
+  .btn.ghost:hover{background:#eef5f0}
+  .btn-row{padding:16px 24px;position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 26%)}
+
+  /* selectable cards */
+  .opt{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color .15s, background .15s}
+  .opt:hover{border-color:#bcd3c6}
+  .opt.sel{border-color:var(--green);background:var(--green-light)}
+  .opt .ic{font-size:26px;width:34px;text-align:center}
+  .opt .t{font-weight:700;font-size:16px}
+  .opt .d{font-size:13px;color:var(--muted)}
+  .opt .chk{margin-left:auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0}
+  .opt.sel .chk{background:var(--green);border-color:var(--green)}
+
+  /* chips */
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{background:var(--card);border:2px solid var(--line);border-radius:99px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:#bcd3c6}
+  .chip.sel{background:var(--green);border-color:var(--green);color:#fff}
+
+  /* budget */
+  .budget-val{text-align:center;font-size:40px;font-weight:800;margin:10px 0 2px}
+  .budget-val span{font-size:18px;color:var(--muted)}
+  input[type=range]{width:100%;accent-color:var(--green);height:6px;margin:18px 0}
+  .range-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+
+  /* location */
+  .field{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .field input{border:none;outline:none;font-size:16px;flex:1;font-family:inherit;color:var(--ink);background:none}
+  .loc-btn{display:flex;align-items:center;gap:8px;color:var(--green);font-weight:600;font-size:14px;cursor:pointer;padding:8px 0}
+
+  /* results */
+  .results-head{padding:14px 24px 6px}
+  .filterbar{display:flex;gap:8px;overflow-x:auto;padding:6px 24px 14px;scrollbar-width:none}
+  .filterbar::-webkit-scrollbar{display:none}
+  .pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
+  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  .rcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:0 16px 14px;box-shadow:var(--shadow);overflow:hidden}
+  .rcard-top{padding:16px 16px 12px;display:flex;gap:12px;align-items:flex-start}
+  .rname{font-weight:800;font-size:17px}
+  .rmeta{font-size:13px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .tag{background:#eef2ef;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;color:#52635a;text-transform:uppercase;letter-spacing:.3px}
+  .fit{margin-left:auto;text-align:center;flex-shrink:0}
+  .fit .badge{font-size:11px;font-weight:800;padding:4px 9px;border-radius:8px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  .fit-strong{background:var(--green-light);color:var(--green-dark)}
+  .fit-good{background:var(--amber-light);color:var(--amber)}
+  .fit-weak{background:var(--red-light);color:var(--red)}
+
+  .order{padding:0 16px 14px}
+  .order-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+  .order-item{font-size:16px;font-weight:700;margin-bottom:8px}
+  .mods{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .mod{font-size:12px;font-weight:600;border-radius:7px;padding:4px 9px;display:inline-flex;gap:5px;align-items:center}
+  .mod.rm{background:var(--red-light);color:var(--red)}
+  .mod.add{background:var(--green-light);color:var(--green-dark)}
+  .why{font-size:13.5px;color:#3d4f46;background:#f6faf7;border-left:3px solid var(--green);padding:9px 12px;border-radius:0 8px 8px 0;margin-bottom:10px}
+  .macros{display:flex;gap:14px;font-size:13px}
+  .macro b{display:block;font-size:16px}
+  .macro span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  .rfoot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:12px 16px;background:#fafcfb}
+  .price{font-weight:800;font-size:16px}
+  .est{font-size:11.5px;color:var(--amber);background:var(--amber-light);padding:3px 8px;border-radius:6px;font-weight:600;display:inline-flex;gap:5px;align-items:center;margin-top:4px}
+
+  .disclaimer{font-size:11.5px;color:var(--muted);padding:6px 28px 28px;text-align:center;line-height:1.6}
+  .allergen-note{font-size:12px;color:var(--amber);background:var(--amber-light);margin:0 16px 16px;padding:11px 14px;border-radius:12px;display:flex;gap:8px;align-items:flex-start}
+
+  .summary{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:0 16px 16px;padding:14px 16px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:var(--shadow)}
+  .summary .lab{color:var(--muted);font-weight:600;width:100%;font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+  .summary .s{background:var(--green-light);color:var(--green-dark);border-radius:7px;padding:4px 9px;font-weight:700;font-size:12px}
+  .edit{margin-left:auto;color:var(--green);font-weight:700;font-size:12px;cursor:pointer;background:none;border:none}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- WELCOME -->
+  <section class="screen active" id="s-welcome">
+    <div class="welcome">
+      <div class="logo"><span class="leaf">🥗</span> Healthy Chow</div>
+      <div class="hero-img">🍽️</div>
+      <h1 style="font-size:24px;margin-top:6px">Know exactly what to order, anywhere.</h1>
+      <p class="lead">Tell us your diet. We scan the menus near you and tell you the precise order, modifications included, that keeps you on track.</p>
+      <div class="pricing">
+        <div class="amt">$9<span>.99 / month</span></div>
+        <ul>
+          <li>Personalized orders for any diet</li>
+          <li>Off-menu modifications (no bun, no sugar)</li>
+          <li>Chains + local spots near you</li>
+        </ul>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="go('s-diet')">Start 7-day free trial</button>
+      <button class="btn ghost" onclick="go('s-diet')">I already have an account</button>
+    </div>
+  </section>
+
+  <!-- DIET -->
+  <section class="screen" id="s-diet">
+    <div class="topbar"><button class="back" onclick="go('s-welcome')">←</button><div class="progress"><i style="width:20%"></i></div></div>
+    <div class="pad">
+      <h2>What diet are you following?</h2>
+      <p class="sub">We'll tailor every recommendation to this.</p>
+      <div id="dietOpts"></div>
+    </div>
+    <div class="btn-row"><button class="btn" id="dietNext" disabled onclick="go('s-allergy')">Continue</button></div>
+  </section>
+
+  <!-- ALLERGIES -->
+  <section class="screen" id="s-allergy">
+    <div class="topbar"><button class="back" onclick="go('s-diet')">←</button><div class="progress"><i style="width:40%"></i></div></div>
+    <div class="pad">
+      <h2>Anything to avoid?</h2>
+      <p class="sub">Allergies and foods you never want recommended. Optional, but it makes results safer.</p>
+      <div class="chips" id="avoidChips"></div>
+    </div>
+    <div class="btn-row"><button class="btn" onclick="go('s-style')">Continue</button></div>
+  </section>
+
+  <!-- DINING STYLE -->
+  <section class="screen" id="s-style">
+    <div class="topbar"><button class="back" onclick="go('s-allergy')">←</button><div class="progress"><i style="width:60%"></i></div></div>
+    <div class="pad">
+      <h2>How do you want to eat?</h2>
+      <p class="sub">Pick any that apply.</p>
+      <div id="styleOpts"></div>
+    </div>
+    <div class="btn-row"><button class="btn" id="styleNext" disabled onclick="go('s-budget')">Continue</button></div>
+  </section>
+
+  <!-- BUDGET -->
+  <section class="screen" id="s-budget">
+    <div class="topbar"><button class="back" onclick="go('s-style')">←</button><div class="progress"><i style="width:80%"></i></div></div>
+    <div class="pad">
+      <h2>What's your budget per meal?</h2>
+      <p class="sub">We'll only show orders that fit.</p>
+      <div class="budget-val">Up to $<span id="budgetNum">18</span></div>
+      <input type="range" id="budget" min="8" max="40" value="18" oninput="document.getElementById('budgetNum').innerText=this.value" />
+      <div class="range-labels"><span>$8</span><span>$40+</span></div>
+    </div>
+    <div class="btn-row"><button class="btn" onclick="go('s-loc')">Continue</button></div>
+  </section>
+
+  <!-- LOCATION -->
+  <section class="screen" id="s-loc">
+    <div class="topbar"><button class="back" onclick="go('s-budget')">←</button><div class="progress"><i style="width:95%"></i></div></div>
+    <div class="pad">
+      <h2>Where are you?</h2>
+      <p class="sub">We'll scan menus within a few miles.</p>
+      <div class="field">📍 <input id="locInput" value="Sea Girt, NJ" /></div>
+      <div class="loc-btn" onclick="document.getElementById('locInput').value='Current location'">🎯 Use my current location</div>
+    </div>
+    <div class="btn-row"><button class="btn" onclick="buildResults();go('s-results')">Find my orders</button></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="s-results">
+    <div class="results-head">
+      <div class="logo" style="font-size:19px"><span class="leaf" style="width:28px;height:28px;font-size:16px">🥗</span> Healthy Chow</div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="allergen-note">⚠️ <span>Recommendations are dietary guidance, not medical or allergen advice. Always confirm ingredients with the restaurant, especially for allergies.</span></div>
+    <div class="filterbar" id="filterbar"></div>
+    <div id="resultsList"></div>
+    <p class="disclaimer">Healthy Chow provides general wellness guidance and is not a substitute for professional medical or nutritional advice. Nutrition values for chains are sourced from published data; values marked <em>Estimated</em> are inferred from menu descriptions and are approximate.</p>
+    <div class="pad"><button class="btn ghost" onclick="go('s-diet')">↻ Start over</button></div>
+  </section>
+
+</div>
+
+<script>
+/* ---------- state ---------- */
+const state = { diet:null, avoid:[], styles:[], budget:18, loc:"Sea Girt, NJ" };
+
+const DIETS = [
+  {id:'keto', ic:'🥑', t:'Keto', d:'Very low carb, high fat'},
+  {id:'low-carb', ic:'🥬', t:'Low-Carb', d:'Reduced carbs, balanced'},
+  {id:'mediterranean', ic:'🫒', t:'Mediterranean', d:'Fish, veg, olive oil, whole grains'},
+  {id:'paleo', ic:'🍖', t:'Paleo', d:'Whole foods, no grains or dairy'},
+  {id:'carnivore', ic:'🥩', t:'Carnivore', d:'Animal products only'},
+];
+const AVOID = ['Gluten','Dairy','Nuts','Shellfish','Soy','Pork','Eggs','Cilantro'];
+const STYLES = [
+  {id:'dine-in', ic:'🍷', t:'Dine-in', d:'Sit-down restaurants'},
+  {id:'take-out', ic:'🥡', t:'Take-out', d:'Order and go'},
+  {id:'fast-casual', ic:'🥙', t:'Fast-casual', d:'Chipotle, Sweetgreen, etc.'},
+  {id:'fast-food', ic:'🍔', t:'Fast food', d:'Drive-thru chains'},
+];
+
+/* ---------- mock restaurant + recommendation data ---------- */
+/* fit: strong | good | weak ; mods: {rm:[], add:[]} ; estimated=true for independents */
+const RESTAURANTS = [
+  {
+    name:"McDonald's", style:'fast-food', tag:'Fast Food', dist:'0.8 mi', priceVal:8, independent:false,
+    recs:{
+      keto:{item:'Double Quarter Pounder, patty only', mods:{rm:['No bun','No ketchup'],add:['Add cheese','Side of bacon']}, why:'The bun (~40g carbs) and ketchup (added sugar) are the only off-plan parts. Patty + cheese is nearly zero carb.', carbs:3, sugar:0, protein:30, fit:'strong', price:7.49},
+      'low-carb':{item:'Double Quarter Pounder', mods:{rm:['Open-face, top bun only','No ketchup'],add:['Extra patty']}, why:'Dropping half the bun and the ketchup roughly halves the carbs while keeping it filling.', carbs:19, sugar:4, protein:32, fit:'good', price:7.49},
+      carnivore:{item:'Double Quarter Pounder, patty only', mods:{rm:['No bun','No ketchup','No pickles','No onion'],add:['Add 2 sausage patties']}, why:'Beef and cheese only. Strip everything plant-based and you have a clean carnivore plate.', carbs:1, sugar:0, protein:46, fit:'strong', price:9.29},
+      paleo:{item:'Grilled chicken, no bun', mods:{rm:['No bun','No mayo','No cheese'],add:['Side salad']}, why:'Grilled chicken works, but dairy and the seed-oil mayo are off-plan. Lean protein + side salad is the best fit here.', carbs:8, sugar:3, protein:28, fit:'good', price:6.99},
+    }
+  },
+  {
+    name:"Chipotle", style:'fast-casual', tag:'Fast Casual', dist:'1.2 mi', priceVal:12, independent:false,
+    recs:{
+      keto:{item:'Burrito Bowl', mods:{rm:['No rice','No beans'],add:['Double chicken','Cheese','Guacamole','Fajita veg']}, why:'Rice and beans are the carbs. Load protein, cheese, and guac instead, a classic keto bowl under 10g net carbs.', carbs:9, sugar:2, protein:52, fit:'strong', price:11.45},
+      'low-carb':{item:'Burrito Bowl', mods:{rm:['No rice'],add:['Chicken','Black beans (½)','Salsa','Lettuce']}, why:'Keep a half-portion of beans for fiber, skip the rice. Balanced and well within low-carb.', carbs:24, sugar:3, protein:44, fit:'strong', price:11.45},
+      mediterranean:{item:'Veggie Bowl', mods:{rm:['No cheese','No sour cream'],add:['Brown rice','Black beans','Fajita veg','Guac']}, why:'Plant-forward with healthy fats from guac. Skipping dairy keeps it closer to Mediterranean.', carbs:48, sugar:4, protein:16, fit:'good', price:9.95},
+      paleo:{item:'Salad Bowl', mods:{rm:['No rice','No beans','No cheese','No dressing'],add:['Carnitas','Guac','Fajita veg','Romaine']}, why:'Meat, veg, and guac only, no grains, legumes, or dairy. About as paleo as a chain gets.', carbs:11, sugar:3, protein:34, fit:'strong', price:12.20},
+      carnivore:{item:'Double Steak, meat only', mods:{rm:['No bowl base','No veg','No salsa'],add:['Triple steak','Extra cheese']}, why:'Order steak by the scoop. Not their specialty, but a meat-and-cheese portion is doable.', carbs:2, sugar:0, protein:48, fit:'good', price:13.50},
+    }
+  },
+  {
+    name:"Sal's Corner Deli", style:'take-out', tag:'Local • Take-out', dist:'0.4 mi', priceVal:11, independent:true,
+    recs:{
+      keto:{item:'Chef Salad', mods:{rm:['No croutons','No shredded carrot'],add:['Ranch dressing','Extra turkey & ham','Avocado']}, why:'Croutons and carrots are the hidden carbs. Swap the sweet vinaigrette for cream-based ranch and add fat.', carbs:8, sugar:3, protein:29, fit:'good', price:10.50},
+      'low-carb':{item:'Italian Cobb Salad', mods:{rm:['No croutons'],add:['Olive oil & vinegar','Extra egg']}, why:'A loaded cobb is naturally low-carb once the croutons are gone. Oil & vinegar keeps sugar down.', carbs:12, sugar:4, protein:26, fit:'good', price:9.75},
+      mediterranean:{item:'Greek Salad with Grilled Chicken', mods:{rm:['Light feta'],add:['Extra olives','Olive oil','Lemon']}, why:'Greens, olives, olive oil, and lean chicken. This is the Mediterranean template. Just go easy on the feta.', carbs:14, sugar:6, protein:31, fit:'strong', price:11.00},
+      paleo:{item:'Grilled Chicken Salad', mods:{rm:['No croutons','No cheese'],add:['Olive oil & vinegar','Avocado']}, why:'Chicken, greens, and avocado with no grains or dairy. Skip the deli cheese and the creamy dressings.', carbs:10, sugar:3, protein:30, fit:'good', price:10.25},
+    }
+  },
+  {
+    name:"The Anchor Tavern", style:'dine-in', tag:'Dine-in • Seafood', dist:'1.9 mi', priceVal:24, independent:true,
+    recs:{
+      mediterranean:{item:'Grilled Branzino', mods:{rm:['Hold the bread'],add:['Double sautéed spinach','Lemon & olive oil']}, why:'Whole grilled fish with greens in olive oil is the gold standard for Mediterranean. Outstanding fit.', carbs:9, sugar:2, protein:42, fit:'strong', price:23.00},
+      keto:{item:'Ribeye Steak', mods:{rm:['No potato'],add:['Sub asparagus','Garlic butter','Side Caesar, no croutons']}, why:'Steak + green veg + butter is textbook keto. Swap the starch side and lose the croutons.', carbs:6, sugar:1, protein:48, fit:'strong', price:26.50},
+      carnivore:{item:'16oz Ribeye', mods:{rm:['No sides','No sauce'],add:['Add shrimp skewer','Butter']}, why:'Just the steak, add seafood for variety. The cleanest carnivore plate on this list.', carbs:0, sugar:0, protein:62, fit:'strong', price:28.00},
+      paleo:{item:'Pan-Seared Salmon', mods:{rm:['No butter','No potato'],add:['Roasted vegetables','Olive oil']}, why:'Wild fish and roasted veg with no dairy or grains. Ask for olive oil instead of butter to keep it paleo.', carbs:12, sugar:4, protein:38, fit:'good', price:24.00},
+    }
+  },
+  {
+    name:"Sweetgreen", style:'fast-casual', tag:'Fast Casual', dist:'2.3 mi', priceVal:14, independent:false,
+    recs:{
+      mediterranean:{item:'Shroomami Bowl', mods:{rm:['Light tahini'],add:['Warm quinoa','Roasted almonds']}, why:'Whole grains, veg, and a tahini-based dressing line up well with Mediterranean eating.', carbs:46, sugar:8, protein:18, fit:'good', price:13.25},
+      keto:{item:"Custom 'Keto' Plate", mods:{rm:['No grains','No sweet potato'],add:['Blackened chicken','Avocado','Goat cheese','Caesar dressing']}, why:'Build your own: protein, avocado, cheese, leafy greens. Skip every grain and root vegetable.', carbs:11, sugar:4, protein:34, fit:'good', price:14.50},
+      'low-carb':{item:'Harvest Bowl', mods:{rm:['No wild rice','½ sweet potato'],add:['Extra chicken']}, why:'Cutting the rice and halving the sweet potato brings this popular bowl into low-carb range.', carbs:28, sugar:7, protein:30, fit:'good', price:13.95},
+      paleo:{item:'Custom Paleo Plate', mods:{rm:['No grains','No cheese'],add:['Steak','Avocado','Roasted veg','Olive oil']}, why:'Meat, veg, and avocado with olive oil, no dairy or grains. Easy to assemble here.', carbs:14, sugar:5, protein:32, fit:'strong', price:15.00},
+    }
+  },
+  {
+    name:"Wendy's", style:'fast-food', tag:'Fast Food', dist:'1.5 mi', priceVal:8, independent:false,
+    recs:{
+      keto:{item:'Baconator, no bun', mods:{rm:['No bun','No ketchup'],add:['Extra cheese']}, why:'Two patties, bacon, and cheese with the bun and ketchup removed is one of the best fast-food keto orders anywhere.', carbs:4, sugar:1, protein:58, fit:'strong', price:8.49},
+      'low-carb':{item:'Grilled Chicken Sandwich', mods:{rm:['Top bun only','No honey mustard'],add:['Extra lettuce & tomato']}, why:'Grilled (not breaded) chicken, open-faced, with a sugar-free sauce keeps carbs modest.', carbs:21, sugar:5, protein:35, fit:'good', price:7.29},
+      carnivore:{item:'Triple Baconator, patties only', mods:{rm:['No bun','No veg','No sauce'],add:['Extra bacon','Extra cheese']}, why:'Pure beef, bacon, and cheese. Strip the bun and condiments for a zero-carb carnivore order.', carbs:2, sugar:0, protein:70, fit:'strong', price:10.99},
+    }
+  },
+];
+
+/* ---------- render onboarding ---------- */
+function renderDiets(){
+  const c=document.getElementById('dietOpts'); c.innerHTML='';
+  DIETS.forEach(d=>{
+    const el=document.createElement('div'); el.className='opt'+(state.diet===d.id?' sel':'');
+    el.innerHTML=`<div class="ic">${d.ic}</div><div><div class="t">${d.t}</div><div class="d">${d.d}</div></div><div class="chk">✓</div>`;
+    el.onclick=()=>{state.diet=d.id;renderDiets();document.getElementById('dietNext').disabled=false;};
+    c.appendChild(el);
+  });
+}
+function renderAvoid(){
+  const c=document.getElementById('avoidChips'); c.innerHTML='';
+  AVOID.forEach(a=>{
+    const el=document.createElement('div'); el.className='chip'+(state.avoid.includes(a)?' sel':'');
+    el.textContent=a;
+    el.onclick=()=>{ state.avoid.includes(a)?state.avoid.splice(state.avoid.indexOf(a),1):state.avoid.push(a); renderAvoid(); };
+    c.appendChild(el);
+  });
+}
+function renderStyles(){
+  const c=document.getElementById('styleOpts'); c.innerHTML='';
+  STYLES.forEach(s=>{
+    const on=state.styles.includes(s.id);
+    const el=document.createElement('div'); el.className='opt'+(on?' sel':'');
+    el.innerHTML=`<div class="ic">${s.ic}</div><div><div class="t">${s.t}</div><div class="d">${s.d}</div></div><div class="chk">✓</div>`;
+    el.onclick=()=>{ on?state.styles.splice(state.styles.indexOf(s.id),1):state.styles.push(s.id); renderStyles(); document.getElementById('styleNext').disabled=state.styles.length===0; };
+    c.appendChild(el);
+  });
+}
+
+/* ---------- results ---------- */
+const FITRANK={strong:0,good:1,weak:2};
+function buildResults(){
+  state.budget=+document.getElementById('budget').value;
+  state.loc=document.getElementById('locInput').value||'your area';
+
+  // summary chips
+  const dietName=DIETS.find(d=>d.id===state.diet).t;
+  const styleNames=state.styles.map(s=>STYLES.find(x=>x.id===s).t);
+  let sum=`<div class="lab">Showing orders near ${state.loc}</div>`;
+  sum+=`<span class="s">${dietName}</span>`;
+  styleNames.forEach(n=>sum+=`<span class="s">${n}</span>`);
+  sum+=`<span class="s">≤ $${state.budget}</span>`;
+  state.avoid.forEach(a=>sum+=`<span class="s">No ${a}</span>`);
+  sum+=`<button class="edit" onclick="go('s-diet')">Edit</button>`;
+  document.getElementById('summary').innerHTML=sum;
+
+  // filter: has a rec for chosen diet, matches dining style (if any chosen), within budget
+  let list=RESTAURANTS.filter(r=>{
+    const rec=r.recs[state.diet]; if(!rec) return false;
+    if(state.styles.length && !state.styles.includes(r.style)) return false;
+    if(rec.price>state.budget) return false;
+    return true;
+  });
+  // sort by fit then distance
+  list.sort((a,b)=> FITRANK[a.recs[state.diet].fit]-FITRANK[b.recs[state.diet].fit] || parseFloat(a.dist)-parseFloat(b.dist));
+
+  const wrap=document.getElementById('resultsList'); wrap.innerHTML='';
+  if(!list.length){
+    wrap.innerHTML=`<div style="text-align:center;padding:40px 30px;color:var(--muted)"><div style="font-size:40px">🔍</div><p style="margin-top:10px">No strong matches under $${state.budget} for ${dietName} with those dining styles. Try raising the budget or adding a dining style.</p></div>`;
+    return;
+  }
+  list.forEach(r=>{
+    const rec=r.recs[state.diet];
+    const fitLabel={strong:'Great fit',good:'Good fit',weak:'Closest option'}[rec.fit];
+    const mods=[
+      ...rec.mods.rm.map(m=>`<span class="mod rm">✕ ${m}</span>`),
+      ...rec.mods.add.map(m=>`<span class="mod add">＋ ${m.replace(/^(Add |Sub |Side of |Extra )/,'')}</span>`)
+    ].join('');
+    const est = r.independent ? `<div class="est">ⓘ Estimated from menu description</div>` : '';
+    const card=document.createElement('div'); card.className='rcard';
+    card.innerHTML=`
+      <div class="rcard-top">
+        <div>
+          <div class="rname">${r.name}</div>
+          <div class="rmeta"><span class="tag">${r.tag}</span> · ${r.dist}</div>
+        </div>
+        <div class="fit"><span class="badge fit-${rec.fit}">${fitLabel}</span></div>
+      </div>
+      <div class="order">
+        <div class="order-label">Order this</div>
+        <div class="order-item">${rec.item}</div>
+        <div class="mods">${mods}</div>
+        <div class="why">${rec.why}</div>
+        <div class="macros">
+          <div class="macro"><b>${rec.carbs}g</b><span>Net carbs</span></div>
+          <div class="macro"><b>${rec.sugar}g</b><span>Sugar</span></div>
+          <div class="macro"><b>${rec.protein}g</b><span>Protein</span></div>
+        </div>
+      </div>
+      <div class="rfoot">
+        <div><div class="price">$${rec.price.toFixed(2)}</div>${est}</div>
+        <button class="btn" style="width:auto;padding:10px 18px;font-size:14px">Order →</button>
+      </div>`;
+    wrap.appendChild(card);
+  });
+
+  // filter pills (visual)
+  const fb=document.getElementById('filterbar');
+  fb.innerHTML=`<span class="pill on">${dietName}</span>`+
+    STYLES.map(s=>`<span class="pill${state.styles.includes(s.id)?' on':''}">${s.t}</span>`).join('')+
+    `<span class="pill">≤ $${state.budget}</span>`;
+}
+
+/* ---------- nav ---------- */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+renderDiets();renderAvoid();renderStyles();
+</script>
+</body>
+</html>
