@@ -32,6 +32,22 @@ export async function geocode(location: string): Promise<{ lat: number; lng: num
   return data.results[0].geometry.location;
 }
 
+// Reverse-geocode coordinates to a readable "City, ST" label for display.
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key) return null;
+  const url = `${GEOCODE_URL}?latlng=${lat},${lng}&key=${key}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.status !== "OK" || !data.results?.length) return null;
+  const comps: Array<{ types: string[]; short_name: string }> = data.results[0].address_components ?? [];
+  const get = (type: string) => comps.find((c) => c.types.includes(type))?.short_name;
+  const city = get("locality") ?? get("sublocality") ?? get("administrative_area_level_2");
+  const state = get("administrative_area_level_1");
+  return [city, state].filter(Boolean).join(", ") || (data.results[0].formatted_address as string);
+}
+
 export async function searchRestaurants(
   center: { lat: number; lng: number },
   radiusMeters = 8000,

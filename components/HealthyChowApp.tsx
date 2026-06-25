@@ -34,9 +34,29 @@ export default function HealthyChowApp() {
   const [budget, setBudget] = useState(18);
   const [loc, setLoc] = useState("Sea Girt, NJ");
 
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "done" | "error">("idle");
+
   const [cards, setCards] = useState<ResultCard[]>([]);
   const [source, setSource] = useState<"live" | "sample">("sample");
   const [loading, setLoading] = useState(false);
+
+  function useCurrentLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("error");
+      return;
+    }
+    setGeoStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLoc("Current location");
+        setGeoStatus("done");
+      },
+      () => setGeoStatus("error"),
+      { enableHighAccuracy: false, timeout: 10000 },
+    );
+  }
 
   const go = (s: Screen) => {
     setScreen(s);
@@ -56,10 +76,16 @@ export default function HealthyChowApp() {
         diet,
         styles: styles.join(","),
         budget: String(budget),
-        loc,
       });
+      if (coords) {
+        params.set("lat", String(coords.lat));
+        params.set("lng", String(coords.lng));
+      } else {
+        params.set("loc", loc);
+      }
       const res = await fetch(`/api/restaurants?${params.toString()}`);
       const data = await res.json();
+      if (data.loc) setLoc(data.loc);
       setCards(data.cards ?? []);
       setSource(data.source === "live" ? "live" : "sample");
     } catch {
@@ -297,11 +323,28 @@ export default function HealthyChowApp() {
             <h2>Where are you?</h2>
             <p className="sub">We&apos;ll read the menus within a few miles.</p>
             <div className="field">
-              📍 <input value={loc} onChange={(e) => setLoc(e.target.value)} />
+              📍{" "}
+              <input
+                value={loc}
+                onChange={(e) => {
+                  setLoc(e.target.value);
+                  setCoords(null);
+                  setGeoStatus("idle");
+                }}
+              />
             </div>
-            <button className="loc-btn" onClick={() => setLoc("Current location")}>
-              🎯 Use my current location
+            <button className="loc-btn" onClick={useCurrentLocation}>
+              {geoStatus === "locating"
+                ? "📡 Locating you..."
+                : geoStatus === "done"
+                  ? "✓ Using your current location"
+                  : "🎯 Use my current location"}
             </button>
+            {geoStatus === "error" && (
+              <p className="sub" style={{ marginTop: 8, color: "var(--d-carn)" }}>
+                Couldn&apos;t get your location. Type a town or city above instead.
+              </p>
+            )}
           </div>
           <div className="btn-row">
             <button className="btn cta" onClick={findPicks}>

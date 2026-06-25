@@ -5,6 +5,7 @@ import {
   hasPlacesKey,
   milesBetween,
   priceFromLevel,
+  reverseGeocode,
   searchRestaurants,
   styleFromTypes,
   tagFromTypes,
@@ -53,13 +54,25 @@ export async function GET(request: NextRequest) {
   const styles = (sp.get("styles") ?? "").split(",").filter(isStyle);
   const budget = Number(sp.get("budget") ?? "40") || 40;
   const loc = (sp.get("loc") ?? "").trim();
+  const latStr = sp.get("lat");
+  const lngStr = sp.get("lng");
+  const lat = latStr !== null ? Number(latStr) : NaN;
+  const lng = lngStr !== null ? Number(lngStr) : NaN;
+  const haveCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
-  if (!hasPlacesKey() || !loc) {
+  if (!hasPlacesKey() || (!loc && !haveCoords)) {
     return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget) });
   }
 
   try {
-    const center = await geocode(loc);
+    let center: { lat: number; lng: number } | null;
+    let resolvedLoc = loc;
+    if (haveCoords) {
+      center = { lat, lng };
+      resolvedLoc = (await reverseGeocode(lat, lng)) ?? "your location";
+    } else {
+      center = await geocode(loc);
+    }
     if (!center) {
       return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget) });
     }
@@ -85,7 +98,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return Response.json({ source: "live", loc, cards: sortCards(cards).slice(0, 12) });
+    return Response.json({ source: "live", loc: resolvedLoc, cards: sortCards(cards).slice(0, 12) });
   } catch (err) {
     // Any geocode/Places failure (billing, quota, network) degrades to sample data.
     return Response.json({
