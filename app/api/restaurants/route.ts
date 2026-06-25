@@ -11,6 +11,7 @@ import {
   tagFromTypes,
 } from "@/lib/places";
 import { authoredRec, knownChain, type ResultCard } from "@/lib/recommend";
+import { generateRecs, hasEngine, type PlaceForRec } from "@/lib/engine";
 
 const FITRANK: Record<Fit, number> = { strong: 0, good: 1, weak: 2 };
 const isDiet = (v: string | null): v is DietId => DIETS.some((d) => d.id === v);
@@ -78,7 +79,9 @@ export async function GET(request: NextRequest) {
     }
     const places = await searchRestaurants(center);
 
-    const cards: ResultCard[] = [];
+    // Build candidate cards. Known chains get our authored recs; the rest are
+    // filled by the engine below (or left as "Pick soon" if no engine).
+    const built: Array<{ card: ResultCard; place: PlaceForRec }> = [];
     for (const p of places) {
       const chain = knownChain(p.name);
       const style = chain?.style ?? styleFromTypes(p.types, p.priceLevel);
@@ -88,17 +91,36 @@ export async function GET(request: NextRequest) {
       const price = rec?.price ?? priceFromLevel(p.priceLevel);
       if (price > budget) continue;
 
-      cards.push({
-        name: p.name,
-        tag: chain?.tag ?? tagFromTypes(p.types),
-        dist: `${milesBetween(center, p).toFixed(1)} mi`,
-        style,
-        independent: !chain,
-        rec,
+      built.push({
+        card: {
+          name: p.name,
+          tag: chain?.tag ?? tagFromTypes(p.types),
+          dist: `${milesBetween(center, p).toFixed(1)} mi`,
+          style,
+          independent: !chain,
+          rec,
+        },
+        place: { name: p.name, types: p.types, price },
       });
     }
 
-    return Response.json({ source: "live", loc: resolvedLoc, cards: sortCards(cards).slice(0, 12) });
+    // Cap to the nearest 12 before generating, so the engine only works on what we show.
+    built.sort((a, b) => parseFloat(a.card.dist) - parseFloat(b.card.dist));
+    const top = built.slice(0, 12);
+
+    // Engine: generate picks for restaurants without an authored rec.
+    if (hasEngine()) {
+      const need = top.filter((b) => b.card.rec === null);
+      if (need.length) {
+        const recs = await generateRecs(diet, need.map((b) => b.place));
+        for (const b of need) {
+          const r = recs.get(b.place.name);
+          if (r) b.card.rec = r;
+        }
+      }
+    }
+
+    return Response.json({ source: "live", loc: resolvedLoc, cards: sortCards(top.map((b) => b.card)) });
   } catch (err) {
     // Any geocode/Places failure (billing, quota, network) degrades to sample data.
     return Response.json({

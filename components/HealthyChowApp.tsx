@@ -491,7 +491,7 @@ export default function HealthyChowApp() {
                       <div>
                         <div className="price">${c.rec.price.toFixed(2)}</div>
                         {c.independent && (
-                          <div className="est">ⓘ Estimated from menu description</div>
+                          <div className="est">ⓘ Estimated, confirm at restaurant</div>
                         )}
                       </div>
                       <button className="btn order-btn">Order →</button>
