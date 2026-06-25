@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Mark } from "./Mark";
 import {
   AVOID,
   DIETS,
-  RESTAURANTS,
   STYLES,
   dietColor,
   dietName,
@@ -13,10 +12,10 @@ import {
   type Fit,
   type StyleId,
 } from "@/lib/data";
+import type { ResultCard } from "@/lib/recommend";
 
 type Screen = "welcome" | "diet" | "allergy" | "style" | "budget" | "loc" | "results";
 
-const FITRANK: Record<Fit, number> = { strong: 0, good: 1, weak: 2 };
 const FIT_LABEL: Record<Fit, string> = { strong: "Great fit", good: "Good fit", weak: "Closest pick" };
 
 function Wordmark({ size }: { size: number }) {
@@ -35,6 +34,10 @@ export default function HealthyChowApp() {
   const [budget, setBudget] = useState(18);
   const [loc, setLoc] = useState("Sea Girt, NJ");
 
+  const [cards, setCards] = useState<ResultCard[]>([]);
+  const [source, setSource] = useState<"live" | "sample">("sample");
+  const [loading, setLoading] = useState(false);
+
   const go = (s: Screen) => {
     setScreen(s);
     if (typeof window !== "undefined") window.scrollTo(0, 0);
@@ -44,20 +47,28 @@ export default function HealthyChowApp() {
 
   const color = dietColor(diet);
 
-  const results = useMemo(() => {
-    if (!diet) return [];
-    return RESTAURANTS.filter((r) => {
-      const rec = r.recs[diet];
-      if (!rec) return false;
-      if (styles.length && !styles.includes(r.style)) return false;
-      if (rec.price > budget) return false;
-      return true;
-    }).sort((a, b) => {
-      const fa = a.recs[diet]!.fit;
-      const fb = b.recs[diet]!.fit;
-      return FITRANK[fa] - FITRANK[fb] || parseFloat(a.dist) - parseFloat(b.dist);
-    });
-  }, [diet, styles, budget]);
+  async function findPicks() {
+    if (!diet) return;
+    go("results");
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        diet,
+        styles: styles.join(","),
+        budget: String(budget),
+        loc,
+      });
+      const res = await fetch(`/api/restaurants?${params.toString()}`);
+      const data = await res.json();
+      setCards(data.cards ?? []);
+      setSource(data.source === "live" ? "live" : "sample");
+    } catch {
+      setCards([]);
+      setSource("sample");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="app">
@@ -250,9 +261,7 @@ export default function HealthyChowApp() {
           <div className="pad">
             <h2>What&apos;s your budget?</h2>
             <p className="sub">Per meal. We&apos;ll only show picks that fit.</p>
-            <div className="budget-val">
-              Up to ${budget}
-            </div>
+            <div className="budget-val">Up to ${budget}</div>
             <input
               type="range"
               min={8}
@@ -288,15 +297,14 @@ export default function HealthyChowApp() {
             <h2>Where are you?</h2>
             <p className="sub">We&apos;ll read the menus within a few miles.</p>
             <div className="field">
-              📍{" "}
-              <input value={loc} onChange={(e) => setLoc(e.target.value)} />
+              📍 <input value={loc} onChange={(e) => setLoc(e.target.value)} />
             </div>
             <button className="loc-btn" onClick={() => setLoc("Current location")}>
               🎯 Use my current location
             </button>
           </div>
           <div className="btn-row">
-            <button className="btn cta" onClick={() => go("results")}>
+            <button className="btn cta" onClick={findPicks}>
               Find my picks
             </button>
           </div>
@@ -314,7 +322,11 @@ export default function HealthyChowApp() {
           </div>
 
           <div className="summary">
-            <div className="lab">Your picks near {loc}</div>
+            <div className="lab">
+              {loading
+                ? "Reading the menus near you..."
+                : `${source === "live" ? "Live picks" : "Sample picks"} near ${loc}`}
+            </div>
             <span className="s diet" style={{ background: color }}>
               {dietName(diet)}
             </span>
@@ -333,6 +345,16 @@ export default function HealthyChowApp() {
               Edit
             </button>
           </div>
+
+          {source === "sample" && !loading && (
+            <div className="allergen-note" style={{ color: "#5A6B5E", background: "#efeadd" }}>
+              ⓘ{" "}
+              <span>
+                Showing sample picks. Live restaurant data near you connects once the location
+                service is enabled.
+              </span>
+            </div>
+          )}
 
           <div className="allergen-note">
             ⚠️{" "}
@@ -354,76 +376,94 @@ export default function HealthyChowApp() {
             <span className="pill">≤ ${budget}</span>
           </div>
 
-          {results.length === 0 ? (
+          {loading ? (
+            <div className="empty">
+              <div style={{ fontSize: 40 }}>🥗</div>
+              <p style={{ marginTop: 10 }}>Scanning nearby menus for your {dietName(diet)} picks...</p>
+            </div>
+          ) : cards.length === 0 ? (
             <div className="empty">
               <div style={{ fontSize: 40 }}>🔍</div>
               <p style={{ marginTop: 10 }}>
-                No strong picks under ${budget} for {dietName(diet)} with those dining styles. Try
-                raising the budget or adding a dining style.
+                No picks under ${budget} for {dietName(diet)} with those dining styles. Try raising
+                the budget or adding a dining style.
               </p>
             </div>
           ) : (
-            results.map((r) => {
-              const rec = r.recs[diet!]!;
-              return (
-                <div key={r.name} className="rcard" style={{ borderLeftColor: color }}>
-                  <div className="rcard-top">
-                    <div>
-                      <div className="rname">{r.name}</div>
-                      <div className="rmeta">
-                        <span className="diet-tag" style={{ background: color }}>
-                          {dietName(diet)}
-                        </span>{" "}
-                        <span className="tag">{r.tag}</span> · {r.dist}
-                      </div>
-                    </div>
-                    <div className="fit">
-                      <span className={`badge fit-${rec.fit}`}>{FIT_LABEL[rec.fit]}</span>
+            cards.map((c, i) => (
+              <div key={`${c.name}-${i}`} className="rcard" style={{ borderLeftColor: color }}>
+                <div className="rcard-top">
+                  <div>
+                    <div className="rname">{c.name}</div>
+                    <div className="rmeta">
+                      <span className="diet-tag" style={{ background: color }}>
+                        {dietName(diet)}
+                      </span>{" "}
+                      <span className="tag">{c.tag}</span> · {c.dist}
                     </div>
                   </div>
-                  <div className="order">
-                    <div className="order-label">Order this</div>
-                    <div className="order-item">{rec.item}</div>
-                    <div className="mods">
-                      {rec.mods.rm.map((m) => (
-                        <span key={m} className="mod rm">
-                          ✕ {m}
-                        </span>
-                      ))}
-                      {rec.mods.add.map((m) => (
-                        <span key={m} className="mod add">
-                          ＋ {m.replace(/^(Add |Sub |Side of |Extra )/, "")}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="why">{rec.why}</div>
-                    <div className="macros">
-                      <div className="macro">
-                        <b>{rec.carbs}g</b>
-                        <span>Net carbs</span>
-                      </div>
-                      <div className="macro">
-                        <b>{rec.sugar}g</b>
-                        <span>Sugar</span>
-                      </div>
-                      <div className="macro">
-                        <b>{rec.protein}g</b>
-                        <span>Protein</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rfoot">
-                    <div>
-                      <div className="price">${rec.price.toFixed(2)}</div>
-                      {r.independent && (
-                        <div className="est">ⓘ Estimated from menu description</div>
-                      )}
-                    </div>
-                    <button className="btn order-btn">Order →</button>
+                  <div className="fit">
+                    {c.rec ? (
+                      <span className={`badge fit-${c.rec.fit}`}>{FIT_LABEL[c.rec.fit]}</span>
+                    ) : (
+                      <span className="badge fit-good">Pick soon</span>
+                    )}
                   </div>
                 </div>
-              );
-            })
+
+                {c.rec ? (
+                  <>
+                    <div className="order">
+                      <div className="order-label">Order this</div>
+                      <div className="order-item">{c.rec.item}</div>
+                      <div className="mods">
+                        {c.rec.mods.rm.map((m) => (
+                          <span key={m} className="mod rm">
+                            ✕ {m}
+                          </span>
+                        ))}
+                        {c.rec.mods.add.map((m) => (
+                          <span key={m} className="mod add">
+                            ＋ {m.replace(/^(Add |Sub |Side of |Extra )/, "")}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="why">{c.rec.why}</div>
+                      <div className="macros">
+                        <div className="macro">
+                          <b>{c.rec.carbs}g</b>
+                          <span>Net carbs</span>
+                        </div>
+                        <div className="macro">
+                          <b>{c.rec.sugar}g</b>
+                          <span>Sugar</span>
+                        </div>
+                        <div className="macro">
+                          <b>{c.rec.protein}g</b>
+                          <span>Protein</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rfoot">
+                      <div>
+                        <div className="price">${c.rec.price.toFixed(2)}</div>
+                        {c.independent && (
+                          <div className="est">ⓘ Estimated from menu description</div>
+                        )}
+                      </div>
+                      <button className="btn order-btn">Order →</button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="order">
+                    <div className="why" style={{ marginBottom: 0 }}>
+                      A tailored Healthy Chow pick for this spot is on the way. Live menu analysis
+                      for local restaurants arrives in the next update.
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
           )}
 
           <p className="disclaimer">
