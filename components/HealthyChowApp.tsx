@@ -192,7 +192,7 @@ export default function HealthyChowApp() {
                 $2<span>.99 / month</span>
               </div>
               <div className="amt-alt">
-                or $24 / year <em>save 33%</em>
+                or $19.99 / year <em>save 44%</em>
               </div>
               <ul>
                 <li>
@@ -492,7 +492,7 @@ export default function HealthyChowApp() {
                   $2.99 / month
                 </button>
                 <button className="btn year" onClick={() => setSubscribed(true)}>
-                  $24 / year
+                  $19.99 / year
                 </button>
               </div>
             </div>
