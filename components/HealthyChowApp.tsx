@@ -59,12 +59,22 @@ function MapImg({ src, alt, className = "" }: { src: string; alt: string; classN
   );
 }
 
+// A Google Maps directions link to the restaurant, and an SMS draft carrying it.
+function directionsUrl(c: ResultCard) {
+  const dest = c.lat != null && c.lng != null ? `${c.lat},${c.lng}` : encodeURIComponent(c.name);
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+}
+function directionsSms(c: ResultCard) {
+  const body = `Directions to ${c.name}: ${directionsUrl(c)}`;
+  return `sms:?&body=${encodeURIComponent(body)}`;
+}
+
 export default function HealthyChowApp() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [diet, setDiet] = useState<DietId | null>(null);
   const [avoid, setAvoid] = useState<string[]>([]);
-  const [styles, setStyles] = useState<StyleId[]>([]);
-  const [budget, setBudget] = useState(18);
+  const [styles, setStyles] = useState<StyleId[]>(STYLES.map((s) => s.id));
+  const [budget, setBudget] = useState(24);
   const [loc, setLoc] = useState("");
 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -647,17 +657,24 @@ export default function HealthyChowApp() {
                           <div className="est">ⓘ Estimated, confirm at restaurant</div>
                         )}
                       </div>
-                      <a
-                        className="btn order-btn"
-                        href={
-                          c.url ??
-                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Order →
-                      </a>
+                      <div className="rfoot-actions">
+                        {c.style === "dine-in" && (
+                          <a className="btn dir-btn" href={directionsSms(c)}>
+                            Send directions
+                          </a>
+                        )}
+                        <a
+                          className="btn order-btn"
+                          href={
+                            c.url ??
+                            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Order →
+                        </a>
+                      </div>
                     </div>
                   </>
                   ) : (
