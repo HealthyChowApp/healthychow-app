@@ -40,6 +40,7 @@ export default function HealthyChowApp() {
   const [cards, setCards] = useState<ResultCard[]>([]);
   const [source, setSource] = useState<"live" | "sample">("sample");
   const [loading, setLoading] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
 
   function useCurrentLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -103,7 +104,8 @@ export default function HealthyChowApp() {
         <section className="screen">
           <div className="welcome">
             <div className="brandtop">
-              <Wordmark size={24} />
+              <Wordmark size={48} />
+              <div className="scout">Your Dietary Scout</div>
               <div className="tagline">Eat out. Eat right.</div>
             </div>
 
@@ -121,7 +123,10 @@ export default function HealthyChowApp() {
 
             <div className="pricing">
               <div className="amt">
-                $9<span>.99 / month</span>
+                $2<span>.99 / month</span>
+              </div>
+              <div className="amt-alt">
+                or $24 / year <em>save 33%</em>
               </div>
               <ul>
                 <li>
@@ -137,11 +142,12 @@ export default function HealthyChowApp() {
             </div>
             <div className="spacer" />
             <button className="btn cta" onClick={() => go("diet")}>
-              Start 7-day free trial
+              Get started
             </button>
             <button className="btn ghost" onClick={() => go("diet")}>
               I already have an account
             </button>
+            <div className="freenote">Free to search. Subscribe to reveal your picks.</div>
           </div>
         </section>
       )}
@@ -404,6 +410,21 @@ export default function HealthyChowApp() {
             </span>
           </div>
 
+          {!loading && !subscribed && cards.some((c) => c.rec) && (
+            <div className="paywall">
+              <h3>🔒 {cards.filter((c) => c.rec).length} picks ready near {loc}</h3>
+              <p>Subscribe to unlock the exact order, modifications, and macros for every spot.</p>
+              <div className="plans">
+                <button className="btn cta" onClick={() => setSubscribed(true)}>
+                  $2.99 / month
+                </button>
+                <button className="btn year" onClick={() => setSubscribed(true)}>
+                  $24 / year
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="filterbar">
             <span className="pill on" style={{ background: color, borderColor: color }}>
               {dietName(diet)}
@@ -452,6 +473,7 @@ export default function HealthyChowApp() {
                 </div>
 
                 {c.rec ? (
+                  subscribed ? (
                   <>
                     <div className="order">
                       <div className="order-label">Order this</div>
@@ -494,6 +516,15 @@ export default function HealthyChowApp() {
                       <button className="btn order-btn">Order →</button>
                     </div>
                   </>
+                  ) : (
+                    <div className="locked">
+                      <span className="lk">🔒</span>
+                      <span>
+                        <b>Your {dietName(diet)} pick is ready.</b> Subscribe to see the exact
+                        order, swaps, and macros.
+                      </span>
+                    </div>
+                  )
                 ) : (
                   <div className="order">
                     <div className="why" style={{ marginBottom: 0 }}>
