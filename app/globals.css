@@ -123,8 +123,7 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .summary .s.diet{color:#fff;font-weight:700}
 .edit{margin-left:auto;color:var(--kale);font-weight:700;font-size:12px;cursor:pointer;background:none;border:none;font-family:var(--font-inter)}
 
-.filterbar{display:flex;gap:8px;overflow-x:auto;padding:2px 24px 14px;scrollbar-width:none}
-.filterbar::-webkit-scrollbar{display:none}
+.filterbar{display:flex;flex-wrap:wrap;gap:8px;padding:2px 24px 14px}
 .pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
 .pill.on{background:var(--kale);color:#fff;border-color:var(--kale)}
 
