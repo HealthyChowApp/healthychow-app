@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mark } from "./Mark";
 import {
   AVOID,
@@ -26,16 +26,32 @@ function Wordmark({ size }: { size: number }) {
   );
 }
 
+// Static map image that hides itself if the map can't load (e.g. Maps Static API not enabled).
+function MapImg({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    <img
+      className={`hcmap ${className}`}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setOk(false)}
+    />
+  );
+}
+
 export default function HealthyChowApp() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [diet, setDiet] = useState<DietId | null>(null);
   const [avoid, setAvoid] = useState<string[]>([]);
   const [styles, setStyles] = useState<StyleId[]>([]);
   const [budget, setBudget] = useState(18);
-  const [loc, setLoc] = useState("Sea Girt, NJ");
+  const [loc, setLoc] = useState("");
 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "done" | "error">("idle");
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   const [cards, setCards] = useState<ResultCard[]>([]);
   const [source, setSource] = useState<"live" | "sample">("sample");
@@ -58,6 +74,15 @@ export default function HealthyChowApp() {
       { enableHighAccuracy: false, timeout: 10000 },
     );
   }
+
+  // Default to the user's current location: request it automatically when the
+  // location screen opens (the browser prompts for permission once).
+  useEffect(() => {
+    if (screen === "loc" && geoStatus === "idle" && !coords) {
+      useCurrentLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   const go = (s: Screen) => {
     setScreen(s);
@@ -88,9 +113,11 @@ export default function HealthyChowApp() {
       const data = await res.json();
       if (data.loc) setLoc(data.loc);
       setCards(data.cards ?? []);
+      setCenter(data.center ?? null);
       setSource(data.source === "live" ? "live" : "sample");
     } catch {
       setCards([]);
+      setCenter(null);
       setSource("sample");
     } finally {
       setLoading(false);
@@ -324,10 +351,11 @@ export default function HealthyChowApp() {
           </div>
           <div className="pad">
             <h2>Where are you?</h2>
-            <p className="sub">We&apos;ll read the menus within a few miles.</p>
+            <p className="sub">We use your current location by default, or enter a town or city.</p>
             <div className="field">
               📍{" "}
               <input
+                placeholder="Enter a town or city"
                 value={loc}
                 onChange={(e) => {
                   setLoc(e.target.value);
@@ -347,6 +375,12 @@ export default function HealthyChowApp() {
               <p className="sub" style={{ marginTop: 8, color: "var(--d-carn)" }}>
                 Couldn&apos;t get your location. Type a town or city above instead.
               </p>
+            )}
+            {coords && (
+              <MapImg
+                src={`/api/staticmap?center=${coords.lat},${coords.lng}&zoom=14`}
+                alt="Map of your current location"
+              />
             )}
           </div>
           <div className="btn-row">
@@ -436,6 +470,19 @@ export default function HealthyChowApp() {
             ))}
             <span className="pill">≤ ${budget}</span>
           </div>
+
+          {!loading && source === "live" && center && cards.some((c) => c.lat) && (
+            <MapImg
+              src={`/api/staticmap?center=${center.lat},${center.lng}&markers=${encodeURIComponent(
+                cards
+                  .filter((c) => c.lat && c.lng)
+                  .map((c) => `${c.lat},${c.lng}`)
+                  .join("|"),
+              )}`}
+              alt="Map of recommended restaurants near you"
+              className="inset"
+            />
+          )}
 
           {loading ? (
             <div className="empty">

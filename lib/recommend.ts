@@ -11,6 +11,8 @@ export interface ResultCard {
   style: StyleId;
   independent: boolean;
   rec: Rec | null; // null = tailored pick not generated yet
+  lat?: number;
+  lng?: number;
 }
 
 const normalize = (s: string) =>

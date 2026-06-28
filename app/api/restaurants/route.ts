@@ -99,6 +99,8 @@ export async function GET(request: NextRequest) {
           style,
           independent: !chain,
           rec,
+          lat: p.lat,
+          lng: p.lng,
         },
         place: { name: p.name, types: p.types, price },
       });
@@ -120,7 +122,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return Response.json({ source: "live", loc: resolvedLoc, cards: sortCards(top.map((b) => b.card)) });
+    return Response.json({
+      source: "live",
+      loc: resolvedLoc,
+      center: { lat: center.lat, lng: center.lng },
+      cards: sortCards(top.map((b) => b.card)),
+    });
   } catch (err) {
     // Any geocode/Places failure (billing, quota, network) degrades to sample data.
     return Response.json({

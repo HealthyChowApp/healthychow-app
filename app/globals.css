@@ -175,6 +175,10 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .btn.year{background:none;border:2px solid var(--kale);color:var(--kale);box-shadow:none}
 .btn.year:hover{background:var(--leaf-soft)}
 
+/* static maps */
+.hcmap{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow);margin-top:12px}
+.hcmap.inset{width:calc(100% - 32px);margin:6px 16px 14px}
+
 /* locked pick (paywalled details) */
 .locked{padding:16px;display:flex;align-items:center;gap:11px;color:var(--muted);font-size:13.5px;background:#faf8f1;border-top:1px dashed var(--line)}
 .locked .lk{font-size:20px;flex-shrink:0}
