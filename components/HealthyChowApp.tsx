@@ -116,11 +116,11 @@ export default function HealthyChowApp() {
   const sortedCards = [...visibleCards].sort((a, b) => {
     switch (sortBy) {
       case "carbs":
-        return (a.rec?.carbs ?? Infinity) - (b.rec?.carbs ?? Infinity);
+        return (a.rec?.options[0]?.carbs ?? Infinity) - (b.rec?.options[0]?.carbs ?? Infinity);
       case "sugar":
-        return (a.rec?.sugar ?? Infinity) - (b.rec?.sugar ?? Infinity);
+        return (a.rec?.options[0]?.sugar ?? Infinity) - (b.rec?.options[0]?.sugar ?? Infinity);
       case "protein":
-        return (b.rec?.protein ?? -Infinity) - (a.rec?.protein ?? -Infinity);
+        return (b.rec?.options[0]?.protein ?? -Infinity) - (a.rec?.options[0]?.protein ?? -Infinity);
       case "price":
         return (a.rec?.price ?? Infinity) - (b.rec?.price ?? Infinity);
       case "dist":
@@ -601,35 +601,44 @@ export default function HealthyChowApp() {
                   subscribed ? (
                   <>
                     <div className="order">
-                      <div className="order-label">Order this</div>
-                      <div className="order-item">{c.rec.item}</div>
-                      <div className="mods">
-                        {c.rec.mods.rm.map((m) => (
-                          <span key={m} className="mod rm">
-                            ✕ {m}
-                          </span>
-                        ))}
-                        {c.rec.mods.add.map((m) => (
-                          <span key={m} className="mod add">
-                            ＋ {m.replace(/^(Add |Sub |Side of |Extra )/, "")}
-                          </span>
-                        ))}
+                      <div className="order-label">
+                        {c.rec.options.length > 1 ? "Top picks" : "Order this"}
                       </div>
-                      <div className="why">{c.rec.why}</div>
-                      <div className="macros">
-                        <div className="macro">
-                          <b>{c.rec.carbs}g</b>
-                          <span>Net carbs</span>
+                      {c.rec.options.map((o, oi) => (
+                        <div key={oi} className={`pick${oi > 0 ? " alt" : ""}`}>
+                          <div className="order-item">
+                            {o.main}
+                            {o.side ? <span className="side"> with {o.side}</span> : null}
+                          </div>
+                          <div className="mods">
+                            {o.mods.rm.map((m) => (
+                              <span key={m} className="mod rm">
+                                ✕ {m}
+                              </span>
+                            ))}
+                            {o.mods.add.map((m) => (
+                              <span key={m} className="mod add">
+                                ＋ {m.replace(/^(Add |Sub |Side of |Extra )/, "")}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="why">{o.why}</div>
+                          <div className="macros">
+                            <div className="macro">
+                              <b>{o.carbs}g</b>
+                              <span>Net carbs</span>
+                            </div>
+                            <div className="macro">
+                              <b>{o.sugar}g</b>
+                              <span>Sugar</span>
+                            </div>
+                            <div className="macro">
+                              <b>{o.protein}g</b>
+                              <span>Protein</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="macro">
-                          <b>{c.rec.sugar}g</b>
-                          <span>Sugar</span>
-                        </div>
-                        <div className="macro">
-                          <b>{c.rec.protein}g</b>
-                          <span>Protein</span>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                     <div className="rfoot">
                       <div>

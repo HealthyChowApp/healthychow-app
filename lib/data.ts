@@ -31,6 +31,24 @@ export interface Rec {
   price: number;
 }
 
+// One meal option: a main dish plus a side, with modifications and macros.
+export interface MealOption {
+  main: string;
+  side: string;
+  mods: { rm: string[]; add: string[] };
+  why: string;
+  carbs: number;
+  sugar: number;
+  protein: number;
+}
+
+// A restaurant's recommendation: an overall fit + price and up to 3 options.
+export interface Pick {
+  fit: Fit;
+  price: number;
+  options: MealOption[];
+}
+
 export interface Restaurant {
   name: string;
   style: StyleId;

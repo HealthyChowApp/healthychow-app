@@ -10,7 +10,7 @@ import {
   styleFromTypes,
   tagFromTypes,
 } from "@/lib/places";
-import { authoredRec, knownChain, type ResultCard } from "@/lib/recommend";
+import { authoredRec, knownChain, recToPick, type ResultCard } from "@/lib/recommend";
 import { generateRecs, hasEngine, type PlaceForRec } from "@/lib/engine";
 
 const FITRANK: Record<Fit, number> = { strong: 0, good: 1, weak: 2 };
@@ -40,7 +40,7 @@ function sampleCards(diet: DietId, styles: StyleId[], budget: number): ResultCar
     dist: r.dist,
     style: r.style,
     independent: r.independent,
-    rec: r.recs[diet] ?? null,
+    rec: r.recs[diet] ? recToPick(r.recs[diet]!) : null,
   }));
   return sortCards(cards);
 }

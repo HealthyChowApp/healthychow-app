@@ -2,7 +2,7 @@
 // Milestone 2: recognized chains use our authored recs; everything else is left
 // for the Milestone 3 engine (Claude + nutrition data) and shown as "coming soon".
 
-import { RESTAURANTS, type DietId, type Rec, type StyleId } from "./data";
+import { RESTAURANTS, type DietId, type Pick, type Rec, type StyleId } from "./data";
 
 export interface ResultCard {
   name: string;
@@ -10,10 +10,29 @@ export interface ResultCard {
   dist: string;
   style: StyleId;
   independent: boolean;
-  rec: Rec | null; // null = tailored pick not generated yet
+  rec: Pick | null; // null = tailored pick not generated yet
   lat?: number;
   lng?: number;
   url?: string; // restaurant website (or Google Maps page) to order from
+}
+
+// Wrap an authored single-pick rec into the multi-option Pick shape.
+export function recToPick(rec: Rec): Pick {
+  return {
+    fit: rec.fit,
+    price: rec.price,
+    options: [
+      {
+        main: rec.item,
+        side: "",
+        mods: rec.mods,
+        why: rec.why,
+        carbs: rec.carbs,
+        sugar: rec.sugar,
+        protein: rec.protein,
+      },
+    ],
+  };
 }
 
 const normalize = (s: string) =>
@@ -36,6 +55,7 @@ export function knownChain(name: string) {
   return null;
 }
 
-export function authoredRec(name: string, diet: DietId): Rec | null {
-  return knownChain(name)?.recs[diet] ?? null;
+export function authoredRec(name: string, diet: DietId): Pick | null {
+  const rec = knownChain(name)?.recs[diet];
+  return rec ? recToPick(rec) : null;
 }
