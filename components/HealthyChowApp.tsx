@@ -103,10 +103,7 @@ export default function HealthyChowApp() {
         <section className="screen">
           <div className="welcome">
             <div className="brandtop">
-              <div className="lockup">
-                <Mark size={30} />
-                <Wordmark size={24} />
-              </div>
+              <Wordmark size={24} />
               <div className="tagline">Eat out. Eat right.</div>
             </div>
 
