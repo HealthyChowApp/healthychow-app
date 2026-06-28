@@ -131,6 +131,7 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .fitpill{background:var(--card);border:1.5px solid var(--line);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;font-family:var(--font-inter);transition:.15s}
 .fitpill:hover{border-color:#cdbf9e}
 .fitpill.on{background:var(--kale);border-color:var(--kale);color:#fff}
+.sortsel{font-family:var(--font-inter);font-size:13px;font-weight:600;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer}
 .pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
 .pill.on{background:var(--kale);color:#fff;border-color:var(--kale)}
 

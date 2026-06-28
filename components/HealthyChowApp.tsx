@@ -26,6 +26,16 @@ const FIT_OPTS: { k: FitFilter; t: string }[] = [
   { k: "weak", t: "Closest" },
 ];
 
+type SortBy = "fit" | "carbs" | "protein" | "sugar" | "dist" | "price";
+const SORT_OPTS: { k: SortBy; t: string }[] = [
+  { k: "fit", t: "Best fit" },
+  { k: "carbs", t: "Lowest net carbs" },
+  { k: "protein", t: "Highest protein" },
+  { k: "sugar", t: "Lowest sugar" },
+  { k: "dist", t: "Nearest" },
+  { k: "price", t: "Lowest price" },
+];
+
 function Wordmark({ size }: { size: number }) {
   return (
     <div className="wordmark" style={{ fontSize: size }}>
@@ -66,6 +76,7 @@ export default function HealthyChowApp() {
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [fitFilter, setFitFilter] = useState<FitFilter>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("fit");
 
   function useCurrentLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -102,12 +113,29 @@ export default function HealthyChowApp() {
 
   const color = dietColor(diet);
   const visibleCards = fitFilter === "all" ? cards : cards.filter((c) => c.rec?.fit === fitFilter);
+  const sortedCards = [...visibleCards].sort((a, b) => {
+    switch (sortBy) {
+      case "carbs":
+        return (a.rec?.carbs ?? Infinity) - (b.rec?.carbs ?? Infinity);
+      case "sugar":
+        return (a.rec?.sugar ?? Infinity) - (b.rec?.sugar ?? Infinity);
+      case "protein":
+        return (b.rec?.protein ?? -Infinity) - (a.rec?.protein ?? -Infinity);
+      case "price":
+        return (a.rec?.price ?? Infinity) - (b.rec?.price ?? Infinity);
+      case "dist":
+        return parseFloat(a.dist) - parseFloat(b.dist);
+      default:
+        return 0; // "fit" keeps the server's fit-then-distance order
+    }
+  });
 
   async function findPicks() {
     if (!diet) return;
     go("results");
     setLoading(true);
     setFitFilter("all");
+    setSortBy("fit");
     try {
       const params = new URLSearchParams({
         diet,
@@ -496,18 +524,34 @@ export default function HealthyChowApp() {
           )}
 
           {!loading && cards.length > 0 && (
-            <div className="fitfilter">
-              <span className="fitlabel">Show</span>
-              {FIT_OPTS.map((o) => (
-                <button
-                  key={o.k}
-                  className={`fitpill${fitFilter === o.k ? " on" : ""}`}
-                  onClick={() => setFitFilter(o.k)}
+            <>
+              <div className="fitfilter">
+                <span className="fitlabel">Show</span>
+                {FIT_OPTS.map((o) => (
+                  <button
+                    key={o.k}
+                    className={`fitpill${fitFilter === o.k ? " on" : ""}`}
+                    onClick={() => setFitFilter(o.k)}
+                  >
+                    {o.t}
+                  </button>
+                ))}
+              </div>
+              <div className="fitfilter">
+                <span className="fitlabel">Sort</span>
+                <select
+                  className="sortsel"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortBy)}
                 >
-                  {o.t}
-                </button>
-              ))}
-            </div>
+                  {SORT_OPTS.map((o) => (
+                    <option key={o.k} value={o.k}>
+                      {o.t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
           )}
 
           {loading ? (
@@ -532,7 +576,7 @@ export default function HealthyChowApp() {
               </p>
             </div>
           ) : (
-            visibleCards.map((c, i) => (
+            sortedCards.map((c, i) => (
               <div key={`${c.name}-${i}`} className="rcard" style={{ borderLeftColor: color }}>
                 <div className="rcard-top">
                   <div>
