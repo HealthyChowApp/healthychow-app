@@ -64,7 +64,7 @@ h2{font-size:23px;margin:0 0 6px;color:var(--kale)}
 /* welcome */
 .welcome{padding:54px 28px 28px;text-align:center;display:flex;flex-direction:column;min-height:100vh}
 .brandtop{display:flex;flex-direction:column;align-items:center;gap:8px}
-.tagline{font-family:var(--font-poppins);font-weight:700;letter-spacing:.16em;font-size:12px;color:var(--muted);text-transform:uppercase}
+.tagline{font-family:var(--font-poppins);font-weight:700;letter-spacing:.16em;text-indent:.16em;font-size:12px;color:var(--muted);text-transform:uppercase}
 .hero-mark{margin:30px auto 6px}
 .welcome h1{font-size:26px;margin-top:8px;line-height:1.15}
 .welcome p.lead{font-size:17px;color:var(--muted);max-width:340px;margin:8px auto 0}
