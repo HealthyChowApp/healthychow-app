@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
           rec,
           lat: p.lat,
           lng: p.lng,
+          url: p.website ?? p.mapsUri,
         },
         place: { name: p.name, types: p.types, price },
       });

@@ -13,6 +13,7 @@ export interface ResultCard {
   rec: Rec | null; // null = tailored pick not generated yet
   lat?: number;
   lng?: number;
+  url?: string; // restaurant website (or Google Maps page) to order from
 }
 
 const normalize = (s: string) =>

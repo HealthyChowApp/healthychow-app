@@ -10,6 +10,8 @@ export interface PlaceLite {
   priceLevel?: string;
   lat: number;
   lng: number;
+  website?: string;
+  mapsUri?: string;
 }
 
 const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json";
@@ -60,7 +62,8 @@ export async function searchRestaurants(
     headers: {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": "places.id,places.displayName,places.priceLevel,places.types,places.location",
+      "X-Goog-FieldMask":
+        "places.id,places.displayName,places.priceLevel,places.types,places.location,places.websiteUri,places.googleMapsUri",
     },
     body: JSON.stringify({
       textQuery: "restaurants",
@@ -82,6 +85,8 @@ export async function searchRestaurants(
       priceLevel: p.priceLevel as string | undefined,
       lat: loc?.latitude ?? center.lat,
       lng: loc?.longitude ?? center.lng,
+      website: p.websiteUri as string | undefined,
+      mapsUri: p.googleMapsUri as string | undefined,
     };
   });
 }

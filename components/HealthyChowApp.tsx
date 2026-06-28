@@ -560,7 +560,17 @@ export default function HealthyChowApp() {
                           <div className="est">ⓘ Estimated, confirm at restaurant</div>
                         )}
                       </div>
-                      <button className="btn order-btn">Order →</button>
+                      <a
+                        className="btn order-btn"
+                        href={
+                          c.url ??
+                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Order →
+                      </a>
                     </div>
                   </>
                   ) : (
