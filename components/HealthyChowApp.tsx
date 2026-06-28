@@ -18,6 +18,14 @@ type Screen = "welcome" | "diet" | "allergy" | "style" | "budget" | "loc" | "res
 
 const FIT_LABEL: Record<Fit, string> = { strong: "Great fit", good: "Good fit", weak: "Closest pick" };
 
+type FitFilter = "all" | Fit;
+const FIT_OPTS: { k: FitFilter; t: string }[] = [
+  { k: "all", t: "All" },
+  { k: "strong", t: "Great fit" },
+  { k: "good", t: "Good fit" },
+  { k: "weak", t: "Closest" },
+];
+
 function Wordmark({ size }: { size: number }) {
   return (
     <div className="wordmark" style={{ fontSize: size }}>
@@ -57,6 +65,7 @@ export default function HealthyChowApp() {
   const [source, setSource] = useState<"live" | "sample">("sample");
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [fitFilter, setFitFilter] = useState<FitFilter>("all");
 
   function useCurrentLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -92,11 +101,13 @@ export default function HealthyChowApp() {
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const color = dietColor(diet);
+  const visibleCards = fitFilter === "all" ? cards : cards.filter((c) => c.rec?.fit === fitFilter);
 
   async function findPicks() {
     if (!diet) return;
     go("results");
     setLoading(true);
+    setFitFilter("all");
     try {
       const params = new URLSearchParams({
         diet,
@@ -484,6 +495,21 @@ export default function HealthyChowApp() {
             />
           )}
 
+          {!loading && cards.length > 0 && (
+            <div className="fitfilter">
+              <span className="fitlabel">Show</span>
+              {FIT_OPTS.map((o) => (
+                <button
+                  key={o.k}
+                  className={`fitpill${fitFilter === o.k ? " on" : ""}`}
+                  onClick={() => setFitFilter(o.k)}
+                >
+                  {o.t}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? (
             <div className="empty">
               <div style={{ fontSize: 40 }}>🥗</div>
@@ -497,8 +523,16 @@ export default function HealthyChowApp() {
                 the budget or adding a dining style.
               </p>
             </div>
+          ) : visibleCards.length === 0 ? (
+            <div className="empty">
+              <div style={{ fontSize: 40 }}>🍽️</div>
+              <p style={{ marginTop: 10 }}>
+                No {FIT_OPTS.find((o) => o.k === fitFilter)?.t.toLowerCase()} picks here. Try a
+                different filter above.
+              </p>
+            </div>
           ) : (
-            cards.map((c, i) => (
+            visibleCards.map((c, i) => (
               <div key={`${c.name}-${i}`} className="rcard" style={{ borderLeftColor: color }}>
                 <div className="rcard-top">
                   <div>

@@ -124,6 +124,13 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .edit{margin-left:auto;color:var(--kale);font-weight:700;font-size:12px;cursor:pointer;background:none;border:none;font-family:var(--font-inter)}
 
 .filterbar{display:flex;flex-wrap:wrap;gap:8px;padding:2px 24px 14px}
+
+/* fit filter */
+.fitfilter{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 16px 12px}
+.fitlabel{font-family:var(--font-poppins);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-right:2px}
+.fitpill{background:var(--card);border:1.5px solid var(--line);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;font-family:var(--font-inter);transition:.15s}
+.fitpill:hover{border-color:#cdbf9e}
+.fitpill.on{background:var(--kale);border-color:var(--kale);color:#fff}
 .pill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--ink)}
 .pill.on{background:var(--kale);color:#fff;border-color:var(--kale)}
 
