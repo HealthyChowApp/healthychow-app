@@ -169,6 +169,18 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .dir-btn{width:auto;padding:10px 14px;font-size:13px;border-radius:11px;display:inline-flex;align-items:center;background:none;border:1.5px solid var(--kale);color:var(--kale);text-decoration:none}
 .dir-btn:link,.dir-btn:visited{color:var(--kale);text-decoration:none}
 .dir-btn:hover{background:var(--leaf-soft);color:var(--kale)}
+
+/* sms modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,79,43,.45);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50;animation:fade .2s ease}
+.modal{background:var(--card);border-radius:var(--radius);padding:22px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(20,60,40,.25)}
+.modal-title{font-family:var(--font-poppins);font-weight:800;font-size:19px;color:var(--kale)}
+.modal-sub{font-size:14px;color:var(--muted);margin:4px 0 14px}
+.modal-input{width:100%;border:2px solid var(--line);border-radius:12px;padding:13px 14px;font-size:16px;font-family:var(--font-inter);color:var(--ink);outline:none;margin-bottom:10px}
+.modal-input:focus{border-color:var(--kale)}
+.modal-err{font-size:12.5px;color:var(--d-carn);margin-bottom:10px}
+.modal-err a{color:var(--kale);font-weight:700}
+.modal-ok{font-size:15px;color:var(--kale);font-weight:700;font-family:var(--font-poppins);margin:6px 0 14px}
+.modal .btn{margin-top:4px}
 .empty{text-align:center;padding:40px 30px;color:var(--muted)}
 
 .disclaimer{font-size:11.5px;color:var(--muted);padding:6px 28px 28px;text-align:center;line-height:1.6}

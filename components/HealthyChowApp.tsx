@@ -87,6 +87,42 @@ export default function HealthyChowApp() {
   const [subscribed, setSubscribed] = useState(false);
   const [fitFilter, setFitFilter] = useState<FitFilter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("fit");
+  const [smsCard, setSmsCard] = useState<ResultCard | null>(null);
+  const [smsPhone, setSmsPhone] = useState("");
+  const [smsState, setSmsState] = useState<"idle" | "sending" | "sent" | "error" | "unconfigured">(
+    "idle",
+  );
+  const [smsMsg, setSmsMsg] = useState("");
+
+  async function sendDirections() {
+    if (!smsCard) return;
+    setSmsState("sending");
+    setSmsMsg("");
+    try {
+      const res = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: smsPhone, name: smsCard.name, url: directionsUrl(smsCard) }),
+      });
+      if (res.ok) {
+        setSmsState("sent");
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 503 || data.error === "sms_not_configured") {
+        setSmsState("unconfigured");
+      } else if (data.error === "invalid_phone") {
+        setSmsState("error");
+        setSmsMsg("Enter a valid mobile number.");
+      } else {
+        setSmsState("error");
+        setSmsMsg("Could not send. Please try again.");
+      }
+    } catch {
+      setSmsState("error");
+      setSmsMsg("Could not send. Check your connection.");
+    }
+  }
 
   function useCurrentLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -659,9 +695,17 @@ export default function HealthyChowApp() {
                       </div>
                       <div className="rfoot-actions">
                         {c.style === "dine-in" && (
-                          <a className="btn dir-btn" href={directionsSms(c)}>
+                          <button
+                            className="btn dir-btn"
+                            onClick={() => {
+                              setSmsCard(c);
+                              setSmsPhone("");
+                              setSmsState("idle");
+                              setSmsMsg("");
+                            }}
+                          >
                             Send directions
-                          </a>
+                          </button>
                         )}
                         <a
                           className="btn order-btn"
@@ -709,6 +753,46 @@ export default function HealthyChowApp() {
             </button>
           </div>
         </section>
+      )}
+
+      {smsCard && (
+        <div className="modal-overlay" onClick={() => setSmsCard(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">Text me directions</div>
+            <p className="modal-sub">We&apos;ll text a Google Maps link to {smsCard.name}.</p>
+            {smsState === "sent" ? (
+              <p className="modal-ok">✓ Sent. Check your phone.</p>
+            ) : (
+              <>
+                <input
+                  className="modal-input"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="Your mobile number"
+                  value={smsPhone}
+                  onChange={(e) => setSmsPhone(e.target.value)}
+                />
+                {smsMsg && <p className="modal-err">{smsMsg}</p>}
+                {smsState === "unconfigured" && (
+                  <p className="modal-err">
+                    Texting isn&apos;t enabled yet.{" "}
+                    <a href={directionsSms(smsCard)}>Open it in your Messages app</a> instead.
+                  </p>
+                )}
+                <button
+                  className="btn cta"
+                  disabled={smsState === "sending" || !smsPhone.trim()}
+                  onClick={sendDirections}
+                >
+                  {smsState === "sending" ? "Sending..." : "Text it to me"}
+                </button>
+              </>
+            )}
+            <button className="btn ghost" onClick={() => setSmsCard(null)}>
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
