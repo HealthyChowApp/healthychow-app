@@ -815,7 +815,7 @@ export default function HealthyChowApp() {
                     {c.rec ? (
                       <span className={`badge fit-${c.rec.fit}`}>{FIT_LABEL[c.rec.fit]}</span>
                     ) : (
-                      <span className="badge fit-good">Pick soon</span>
+                      <span className="badge fit-good">No pick yet</span>
                     )}
                   </div>
                 </div>
@@ -916,12 +916,31 @@ export default function HealthyChowApp() {
                     </div>
                   )
                 ) : (
-                  <div className="order">
-                    <div className="why" style={{ marginBottom: 0 }}>
-                      A tailored Healthy Chow pick for this spot is on the way. Live menu analysis
-                      for local restaurants arrives in the next update.
+                  <>
+                    <div className="order">
+                      <div className="why" style={{ marginBottom: 0 }}>
+                        We could not pin down enough of this spot&apos;s menu to make a confident{" "}
+                        {dietName(diet)} pick right now. Open their page to check the menu yourself,
+                        or run the search again in a moment.
+                      </div>
                     </div>
-                  </div>
+                    <div className="rfoot">
+                      <div className="rfoot-note">No verified pick yet</div>
+                      <div className="rfoot-actions">
+                        <a
+                          className="btn order-btn"
+                          href={
+                            c.url ??
+                            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View menu →
+                        </a>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             ))
