@@ -137,11 +137,36 @@ export default function HealthyChowApp() {
 
   const [checkoutMsg, setCheckoutMsg] = useState("");
 
+  async function syncSubscription() {
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data } = await sb.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    try {
+      const res = await fetch("/api/account/sync", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const j = await res.json();
+        setAccountSubscribed(Boolean(j.subscribed));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   async function loadProfile(id: string) {
     const sb = getSupabase();
     if (!sb) return;
     const { data } = await sb.from("profiles").select("subscribed").eq("id", id).single();
-    setAccountSubscribed(Boolean(data?.subscribed));
+    if (data?.subscribed) {
+      setAccountSubscribed(true);
+      return;
+    }
+    // DB not marked subscribed; reconcile against Stripe (self-heals webhook misses).
+    syncSubscription();
   }
 
   async function refreshSubscription() {
