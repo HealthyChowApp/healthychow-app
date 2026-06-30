@@ -77,14 +77,14 @@ export async function GET(request: NextRequest) {
     if (!center) {
       return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget) });
     }
-    const places = await searchRestaurants(center);
+    const places = await searchRestaurants(center, styles);
 
     // Build candidate cards. Known chains get our authored recs; the rest are
     // filled by the engine below (or left as "Pick soon" if no engine).
     const built: Array<{ card: ResultCard; place: PlaceForRec }> = [];
     for (const p of places) {
       const chain = knownChain(p.name);
-      const style = chain?.style ?? styleFromTypes(p.types, p.priceLevel);
+      const style = chain?.style ?? p.searchedStyle ?? styleFromTypes(p.types, p.priceLevel);
       if (styles.length && !styles.includes(style)) continue;
 
       const rec = chain ? authoredRec(p.name, diet) : null;

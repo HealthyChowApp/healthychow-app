@@ -12,6 +12,7 @@ export interface PlaceLite {
   lng: number;
   website?: string;
   mapsUri?: string;
+  searchedStyle?: StyleId; // the dining style this place was searched under
 }
 
 const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json";
@@ -50,12 +51,22 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   return [city, state].filter(Boolean).join(", ") || (data.results[0].formatted_address as string);
 }
 
-export async function searchRestaurants(
+// Text query used to actually surface each dining style (Google ranks by
+// prominence, so we have to ask for the category to get it).
+const STYLE_QUERY: Record<StyleId, string> = {
+  "dine-in": "sit down restaurants",
+  "take-out": "takeout food",
+  "fast-casual": "fast casual restaurants",
+  "fast-food": "fast food",
+};
+
+async function placesTextSearch(
+  query: string,
   center: { lat: number; lng: number },
-  radiusMeters = 8000,
+  radiusMeters: number,
+  key: string,
+  searchedStyle: StyleId | null,
 ): Promise<PlaceLite[]> {
-  const key = process.env.GOOGLE_PLACES_API_KEY;
-  if (!key) return [];
   const res = await fetch(PLACES_SEARCH_URL, {
     method: "POST",
     cache: "no-store",
@@ -66,7 +77,7 @@ export async function searchRestaurants(
         "places.id,places.displayName,places.priceLevel,places.types,places.location,places.websiteUri,places.googleMapsUri",
     },
     body: JSON.stringify({
-      textQuery: "restaurants",
+      textQuery: query,
       maxResultCount: 20,
       locationBias: {
         circle: { center: { latitude: center.lat, longitude: center.lng }, radius: radiusMeters },
@@ -87,8 +98,37 @@ export async function searchRestaurants(
       lng: loc?.longitude ?? center.lng,
       website: p.websiteUri as string | undefined,
       mapsUri: p.googleMapsUri as string | undefined,
+      searchedStyle: searchedStyle ?? undefined,
     };
   });
+}
+
+// Searches one query per selected dining style (so e.g. "fast food" actually
+// returns the chains), then merges and de-duplicates by place id.
+export async function searchRestaurants(
+  center: { lat: number; lng: number },
+  styles: StyleId[] = [],
+  radiusMeters = 8000,
+): Promise<PlaceLite[]> {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key) return [];
+
+  const queries =
+    styles.length > 0
+      ? styles.map((s) => ({ style: s as StyleId | null, q: STYLE_QUERY[s] }))
+      : [{ style: null as StyleId | null, q: "restaurants" }];
+
+  const lists = await Promise.all(
+    queries.map(({ style, q }) => placesTextSearch(q, center, radiusMeters, key, style)),
+  );
+
+  const byId = new Map<string, PlaceLite>();
+  for (const list of lists) {
+    for (const p of list) {
+      if (p.id && !byId.has(p.id)) byId.set(p.id, p);
+    }
+  }
+  return [...byId.values()];
 }
 
 // Haversine distance in miles, formatted like "0.8 mi".
