@@ -155,6 +155,11 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .menu-badge{font-size:11.5px;font-weight:600;border-radius:6px;padding:3px 8px;display:inline-flex;gap:5px;align-items:center;margin-bottom:9px}
 .menu-badge.on{background:var(--leaf-soft);color:var(--kale)}
 .menu-badge.est{background:var(--turmeric-soft);color:var(--turmeric-deep)}
+.opt-price{font-family:var(--font-poppins);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.price-tag{font-size:11px;font-weight:600;border-radius:5px;padding:2px 7px}
+.price-tag.actual{background:var(--leaf-soft);color:var(--kale)}
+.price-tag.est{background:var(--turmeric-soft);color:var(--turmeric-deep)}
+.rfoot-note{font-size:11.5px;color:var(--muted)}
 .mods{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
 .mod{font-size:12px;font-weight:600;border-radius:8px;padding:4px 9px;display:inline-flex;gap:5px;align-items:center}
 .mod.rm{background:#f7e3e2;color:var(--d-carn)}

@@ -43,6 +43,10 @@ export interface MealOption {
   // True when the main is a real item verified on the restaurant's menu.
   // False/undefined when it's a reasonable suggestion the diner should confirm.
   onMenu?: boolean;
+  // Price of this order. priceEstimated true means we could not read it from the
+  // menu and it's our best guess; false means it came from the actual menu.
+  price?: number;
+  priceEstimated?: boolean;
 }
 
 // A restaurant's recommendation: an overall fit + price and up to 3 options.

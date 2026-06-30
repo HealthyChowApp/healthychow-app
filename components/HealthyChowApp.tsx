@@ -838,6 +838,14 @@ export default function HealthyChowApp() {
                           ) : o.onMenu === true ? (
                             <div className="menu-badge on">✓ On their menu</div>
                           ) : null}
+                          {typeof o.price === "number" ? (
+                            <div className="opt-price">
+                              ${o.price.toFixed(2)}
+                              <span className={`price-tag ${o.priceEstimated ? "est" : "actual"}`}>
+                                {o.priceEstimated ? "estimated price" : "menu price"}
+                              </span>
+                            </div>
+                          ) : null}
                           <div className="mods">
                             {o.mods.rm.map((m) => (
                               <span key={m} className="mod rm">
@@ -869,12 +877,7 @@ export default function HealthyChowApp() {
                       ))}
                     </div>
                     <div className="rfoot">
-                      <div>
-                        <div className="price">${c.rec.price.toFixed(2)}</div>
-                        {c.independent && (
-                          <div className="est">ⓘ Estimated, confirm at restaurant</div>
-                        )}
-                      </div>
+                      <div className="rfoot-note">Prices per option above</div>
                       <div className="rfoot-actions">
                         {c.style === "dine-in" && (
                           <button

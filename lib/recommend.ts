@@ -31,6 +31,8 @@ export function recToPick(rec: Rec): Pick {
         sugar: rec.sugar,
         protein: rec.protein,
         onMenu: true, // authored picks reference real chain menu items
+        price: rec.price,
+        priceEstimated: true, // curated approximate price, not read from a live menu
       },
     ],
   };

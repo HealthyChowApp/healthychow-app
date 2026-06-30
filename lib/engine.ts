@@ -31,6 +31,11 @@ const clean = (s: unknown) =>
     .replace(/\s+,/g, ",")
     .trim();
 const num = (x: unknown) => Math.max(0, Math.round(Number(x) || 0));
+// Dollars, kept to cents; undefined if not a usable positive number.
+const money = (x: unknown): number | undefined => {
+  const n = Number(x);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : undefined;
+};
 const arr = (x: unknown): string[] => (Array.isArray(x) ? x.map(clean).filter(Boolean) : []);
 
 // Per-instance cache so repeat restaurants on later requests are free.
@@ -90,11 +95,12 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
     `- Recommend up to 3 DISTINCT options. Aim for 3 when reasonable.\n` +
     `- Only set "onMenu": true for a main that genuinely appears on THIS restaurant's menu. If you cannot confirm an item is on their menu, you may still suggest a realistic order for the cuisine but set "onMenu": false.\n` +
     `- Each option is a full meal: a main dish plus a complementary side that also fits the ${diet} diet.\n` +
+    `- "price": the price in US dollars of the main item (a number like 12.99). If you read it from their actual menu set "priceOnMenu": true. If you cannot find a real price, give your best estimate and set "priceOnMenu": false.\n` +
     `- Give integer macro ESTIMATES (net carbs, sugar, protein) for the whole meal. Approximate is fine.\n` +
     `- Overall fit: "strong" if great ${diet} options clearly exist, "good" if it works with modifications, "weak" if little fits and it is the closest compromise.\n` +
     `- Never use em-dashes or en-dashes; use commas, colons, or periods.\n\n` +
     `Reply with ONLY a JSON object, no other text, in exactly this shape:\n` +
-    `{"fit":"strong","menuFound":true,"options":[{"main":"","side":"","remove":[""],"add":[""],"why":"","onMenu":true,"carbs":0,"sugar":0,"protein":0}]}`;
+    `{"fit":"strong","menuFound":true,"options":[{"main":"","side":"","remove":[""],"add":[""],"why":"","onMenu":true,"price":0,"priceOnMenu":true,"carbs":0,"sugar":0,"protein":0}]}`;
 
   const user =
     `Restaurant: ${place.name}${where} (cuisine types: ${place.types.join(", ") || "restaurant"}).${siteHint} ` +
@@ -124,20 +130,30 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
   const fit: Fit = ["strong", "good", "weak"].includes(fitRaw) ? (fitRaw as Fit) : "good";
   const options: MealOption[] = (Array.isArray(data.options) ? data.options : [])
     .slice(0, 3)
-    .map((o: Record<string, unknown>) => ({
-      main: clean(o.main),
-      side: clean(o.side),
-      mods: { rm: arr(o.remove), add: arr(o.add) },
-      why: clean(o.why),
-      onMenu: Boolean(o.onMenu),
-      carbs: num(o.carbs),
-      sugar: num(o.sugar),
-      protein: num(o.protein),
-    }))
+    .map((o: Record<string, unknown>) => {
+      const price = money(o.price);
+      return {
+        main: clean(o.main),
+        side: clean(o.side),
+        mods: { rm: arr(o.remove), add: arr(o.add) },
+        why: clean(o.why),
+        onMenu: Boolean(o.onMenu),
+        price,
+        // Estimated unless we have a real price the model read from the menu.
+        priceEstimated: price === undefined ? true : !o.priceOnMenu,
+        carbs: num(o.carbs),
+        sugar: num(o.sugar),
+        protein: num(o.protein),
+      };
+    })
     .filter((o: MealOption) => o.main);
   if (options.length === 0) return null;
 
-  return { fit, price: place.price, options };
+  // Restaurant-level price = cheapest option (used for budget/display fallback).
+  const prices = options.map((o) => o.price).filter((n): n is number => typeof n === "number");
+  const price = prices.length ? Math.min(...prices) : place.price;
+
+  return { fit, price, options };
 }
 
 // Run an async map with a small concurrency cap (web search is rate-limited and
