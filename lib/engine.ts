@@ -116,32 +116,41 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
     max_content_tokens: 60000,
   } as const;
 
-  const run = (withFetch: boolean) =>
-    anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 3500,
-      tools: withFetch ? [webSearch, webFetch] : [webSearch],
-      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: user }],
-    });
-
-  let resp;
-  try {
-    resp = await run(true);
-  } catch {
-    // If web_fetch is unavailable for any reason, degrade to search-only.
-    try {
-      resp = await run(false);
-    } catch {
-      return null;
+  // Server tools (web_search, web_fetch) can return stop_reason "pause_turn" when
+  // the turn isn't finished (e.g. reading a large menu PDF). We must resume by
+  // sending the partial assistant turn back, looping until the model finishes.
+  const runLoop = async (
+    tools: Array<typeof webSearch | typeof webFetch>,
+  ): Promise<Record<string, unknown> | null> => {
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
+    for (let turn = 0; turn < 5; turn++) {
+      let resp;
+      try {
+        resp = await anthropic.messages.create({
+          model: MODEL,
+          max_tokens: 3500,
+          tools,
+          system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+          messages,
+        });
+      } catch {
+        return null;
+      }
+      if (resp.stop_reason === "pause_turn") {
+        messages.push({ role: "assistant", content: resp.content });
+        continue; // resume the paused server-tool turn
+      }
+      const text = resp.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n");
+      return extractJson(text);
     }
-  }
+    return null; // gave up after too many pauses
+  };
 
-  const text = resp.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
-  const data = extractJson(text);
+  // Try with menu fetching first; fall back to search-only if that yields nothing.
+  const data = (await runLoop([webSearch, webFetch])) ?? (await runLoop([webSearch]));
   if (!data) return null;
 
   const fitRaw = String(data.fit);
@@ -203,7 +212,7 @@ export async function generateRecs(diet: DietId, places: PlaceForRec[]): Promise
   }
   if (misses.length === 0) return out;
 
-  const picks = await mapLimit(misses, 4, (p) => groundOne(diet, p));
+  const picks = await mapLimit(misses, 6, (p) => groundOne(diet, p));
   misses.forEach((p, i) => {
     const pick = picks[i];
     if (pick) {

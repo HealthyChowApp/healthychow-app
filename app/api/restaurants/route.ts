@@ -111,9 +111,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Cap to the nearest 12 before generating, so the engine only works on what we show.
+    // Cap to the nearest 10 before generating, so the engine only works on what
+    // we show and the request finishes inside the serverless time limit.
     built.sort((a, b) => parseFloat(a.card.dist) - parseFloat(b.card.dist));
-    const top = built.slice(0, 12);
+    const top = built.slice(0, 10);
 
     // Engine: generate picks for restaurants without an authored rec.
     if (hasEngine()) {
