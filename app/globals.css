@@ -181,6 +181,8 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .modal-err a{color:var(--kale);font-weight:700}
 .modal-ok{font-size:15px;color:var(--kale);font-weight:700;font-family:var(--font-poppins);margin:6px 0 14px}
 .modal .btn{margin-top:4px}
+
+.toast{background:var(--leaf-soft);color:var(--kale);border:1px solid var(--kale);border-radius:12px;padding:11px 14px;font-size:13.5px;font-weight:600;text-align:center;margin-bottom:8px}
 .empty{text-align:center;padding:40px 30px;color:var(--muted)}
 
 .disclaimer{font-size:11.5px;color:var(--muted);padding:6px 28px 28px;text-align:center;line-height:1.6}

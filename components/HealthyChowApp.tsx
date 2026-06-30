@@ -135,13 +135,26 @@ export default function HealthyChowApp() {
   const [authState, setAuthState] = useState<"idle" | "working">("idle");
   const [authMsg, setAuthMsg] = useState("");
 
+  const [checkoutMsg, setCheckoutMsg] = useState("");
+
+  async function loadProfile(id: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data } = await sb.from("profiles").select("subscribed").eq("id", id).single();
+    setAccountSubscribed(Boolean(data?.subscribed));
+  }
+
+  async function refreshSubscription() {
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data } = await sb.auth.getSession();
+    const id = data.session?.user?.id;
+    if (id) await loadProfile(id);
+  }
+
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
-    const loadProfile = async (id: string) => {
-      const { data } = await sb.from("profiles").select("subscribed").eq("id", id).single();
-      setAccountSubscribed(Boolean(data?.subscribed));
-    };
     sb.auth.getSession().then(({ data }) => {
       const u = data.session?.user;
       if (u) {
@@ -160,6 +173,25 @@ export default function HealthyChowApp() {
       }
     });
     return () => listener.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle the return from Stripe Checkout.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const co = new URLSearchParams(window.location.search).get("checkout");
+    if (co === "success") {
+      setCheckoutMsg("Thanks. Your membership is active and your picks are unlocked.");
+      let n = 0;
+      const t = setInterval(() => {
+        refreshSubscription();
+        if (++n >= 4) clearInterval(t);
+      }, 1500);
+      window.history.replaceState({}, "", "/");
+      return () => clearInterval(t);
+    }
+    if (co === "cancel") window.history.replaceState({}, "", "/");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function openAuth(mode: "login" | "signup") {
@@ -203,13 +235,32 @@ export default function HealthyChowApp() {
     setSubscribed(false);
   }
 
-  // Subscribe button: require an account first; Stripe Checkout slots in here.
-  function startSubscribe() {
+  // Subscribe: require an account, then open Stripe Checkout for the chosen plan.
+  async function startSubscribe(plan: "monthly" | "yearly") {
     if (!user) {
       openAuth("signup");
       return;
     }
-    setSubscribed(true); // temporary mock unlock until Stripe is connected
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, userId: user.id, email: user.email }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      }
+      if (res.status === 503) {
+        // Stripe not configured yet; keep the demo usable with a session unlock.
+        setSubscribed(true);
+      }
+    } catch {
+      // network error: leave locked
+    }
   }
 
   function useCurrentLocation() {
@@ -304,6 +355,7 @@ export default function HealthyChowApp() {
       {screen === "welcome" && (
         <section className="screen">
           <div className="welcome">
+            {checkoutMsg && <div className="toast">{checkoutMsg}</div>}
             <div className="brandtop">
               <Wordmark size={48} />
               <div className="scout">Your Dietary Scout</div>
@@ -629,10 +681,10 @@ export default function HealthyChowApp() {
               <h3>🔒 {cards.filter((c) => c.rec).length} picks ready near {loc}</h3>
               <p>Subscribe to unlock the exact order, modifications, and macros for every spot.</p>
               <div className="plans">
-                <button className="btn cta" onClick={startSubscribe}>
+                <button className="btn cta" onClick={() => startSubscribe("monthly")}>
                   $2.99 / month
                 </button>
-                <button className="btn year" onClick={startSubscribe}>
+                <button className="btn year" onClick={() => startSubscribe("yearly")}>
                   $19.99 / year
                 </button>
               </div>
