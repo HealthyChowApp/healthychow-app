@@ -374,28 +374,31 @@ export default function HealthyChowApp() {
               exact order, modifications and all, at the spots near you.
             </p>
 
-            <div className="pricing">
-              <div className="amt">
-                $2<span>.99 / month</span>
+            {!isSubscribed && (
+              <div className="pricing">
+                <div className="amt">
+                  $2<span>.99 / month</span>
+                </div>
+                <div className="amt-alt">
+                  or $19.99 / year <em>save 44%</em>
+                </div>
+                <ul>
+                  <li>
+                    <span className="tick">✓</span> Picks near you for any diet
+                  </li>
+                  <li>
+                    <span className="tick">✓</span> Off-menu swaps (no bun, no sugar)
+                  </li>
+                  <li>
+                    <span className="tick">✓</span> Big chains and local spots
+                  </li>
+                </ul>
               </div>
-              <div className="amt-alt">
-                or $19.99 / year <em>save 44%</em>
-              </div>
-              <ul>
-                <li>
-                  <span className="tick">✓</span> Picks near you for any diet
-                </li>
-                <li>
-                  <span className="tick">✓</span> Off-menu swaps (no bun, no sugar)
-                </li>
-                <li>
-                  <span className="tick">✓</span> Big chains and local spots
-                </li>
-              </ul>
-            </div>
+            )}
+            {isSubscribed && <div className="member">✓ You&apos;re a member. Your picks are unlocked.</div>}
             <div className="spacer" />
             <button className="btn cta" onClick={() => go("diet")}>
-              Get started
+              {user ? "Find my picks" : "Get started"}
             </button>
             {user ? (
               <button className="btn ghost" onClick={signOut}>
@@ -406,7 +409,9 @@ export default function HealthyChowApp() {
                 Log in
               </button>
             )}
-            <div className="freenote">Free to search. Subscribe to reveal your picks.</div>
+            {!isSubscribed && (
+              <div className="freenote">Free to search. Subscribe to reveal your picks.</div>
+            )}
           </div>
         </section>
       )}
