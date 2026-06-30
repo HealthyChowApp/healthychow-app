@@ -833,6 +833,11 @@ export default function HealthyChowApp() {
                             {o.main}
                             {o.side ? <span className="side"> with {o.side}</span> : null}
                           </div>
+                          {o.onMenu === false ? (
+                            <div className="menu-badge est">ⓘ Suggested, confirm on their menu</div>
+                          ) : o.onMenu === true ? (
+                            <div className="menu-badge on">✓ On their menu</div>
+                          ) : null}
                           <div className="mods">
                             {o.mods.rm.map((m) => (
                               <span key={m} className="mod rm">

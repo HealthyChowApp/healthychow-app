@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
           lng: p.lng,
           url: p.website ?? p.mapsUri,
         },
-        place: { name: p.name, types: p.types, price },
+        place: { name: p.name, types: p.types, price, area: resolvedLoc, website: p.website ?? p.mapsUri },
       });
     }
 

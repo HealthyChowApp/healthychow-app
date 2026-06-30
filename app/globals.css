@@ -152,6 +152,9 @@ input[type=range]{width:100%;accent-color:var(--kale);height:6px;margin:18px 0}
 .order-item{font-family:var(--font-poppins);font-size:16px;font-weight:700;margin-bottom:9px;color:var(--ink)}
 .order-item .side{color:var(--muted);font-weight:600}
 .pick.alt{border-top:1px dashed var(--line);margin-top:13px;padding-top:13px}
+.menu-badge{font-size:11.5px;font-weight:600;border-radius:6px;padding:3px 8px;display:inline-flex;gap:5px;align-items:center;margin-bottom:9px}
+.menu-badge.on{background:var(--leaf-soft);color:var(--kale)}
+.menu-badge.est{background:var(--turmeric-soft);color:var(--turmeric-deep)}
 .mods{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
 .mod{font-size:12px;font-weight:600;border-radius:8px;padding:4px 9px;display:inline-flex;gap:5px;align-items:center}
 .mod.rm{background:#f7e3e2;color:var(--d-carn)}

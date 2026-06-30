@@ -40,6 +40,9 @@ export interface MealOption {
   carbs: number;
   sugar: number;
   protein: number;
+  // True when the main is a real item verified on the restaurant's menu.
+  // False/undefined when it's a reasonable suggestion the diner should confirm.
+  onMenu?: boolean;
 }
 
 // A restaurant's recommendation: an overall fit + price and up to 3 options.

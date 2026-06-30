@@ -30,6 +30,7 @@ export function recToPick(rec: Rec): Pick {
         carbs: rec.carbs,
         sugar: rec.sugar,
         protein: rec.protein,
+        onMenu: true, // authored picks reference real chain menu items
       },
     ],
   };
