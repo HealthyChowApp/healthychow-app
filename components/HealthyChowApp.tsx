@@ -13,6 +13,7 @@ import {
   type StyleId,
 } from "@/lib/data";
 import type { ResultCard } from "@/lib/recommend";
+import { getSupabase } from "@/lib/supabase";
 
 type Screen = "welcome" | "diet" | "allergy" | "style" | "budget" | "loc" | "results";
 
@@ -124,6 +125,93 @@ export default function HealthyChowApp() {
     }
   }
 
+  // --- Accounts (Supabase auth) ---
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [accountSubscribed, setAccountSubscribed] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPw, setAuthPw] = useState("");
+  const [authState, setAuthState] = useState<"idle" | "working">("idle");
+  const [authMsg, setAuthMsg] = useState("");
+
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb) return;
+    const loadProfile = async (id: string) => {
+      const { data } = await sb.from("profiles").select("subscribed").eq("id", id).single();
+      setAccountSubscribed(Boolean(data?.subscribed));
+    };
+    sb.auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      if (u) {
+        setUser({ id: u.id, email: u.email ?? "" });
+        loadProfile(u.id);
+      }
+    });
+    const { data: listener } = sb.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user;
+      if (u) {
+        setUser({ id: u.id, email: u.email ?? "" });
+        loadProfile(u.id);
+      } else {
+        setUser(null);
+        setAccountSubscribed(false);
+      }
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  function openAuth(mode: "login" | "signup") {
+    setAuthMode(mode);
+    setAuthMsg("");
+    setAuthState("idle");
+    setAuthOpen(true);
+  }
+
+  async function doAuth() {
+    const sb = getSupabase();
+    if (!sb) {
+      setAuthMsg("Accounts are not configured yet.");
+      return;
+    }
+    setAuthState("working");
+    setAuthMsg("");
+    const res =
+      authMode === "signup"
+        ? await sb.auth.signUp({ email: authEmail, password: authPw })
+        : await sb.auth.signInWithPassword({ email: authEmail, password: authPw });
+    setAuthState("idle");
+    if (res.error) {
+      setAuthMsg(res.error.message);
+      return;
+    }
+    if (!res.data.session) {
+      setAuthMsg("Account created. Check your email to confirm, then log in.");
+      return;
+    }
+    setAuthOpen(false);
+    setAuthEmail("");
+    setAuthPw("");
+  }
+
+  async function signOut() {
+    const sb = getSupabase();
+    if (sb) await sb.auth.signOut();
+    setUser(null);
+    setAccountSubscribed(false);
+    setSubscribed(false);
+  }
+
+  // Subscribe button: require an account first; Stripe Checkout slots in here.
+  function startSubscribe() {
+    if (!user) {
+      openAuth("signup");
+      return;
+    }
+    setSubscribed(true); // temporary mock unlock until Stripe is connected
+  }
+
   function useCurrentLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeoStatus("error");
@@ -158,6 +246,7 @@ export default function HealthyChowApp() {
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const color = dietColor(diet);
+  const isSubscribed = subscribed || accountSubscribed;
   const visibleCards = fitFilter === "all" ? cards : cards.filter((c) => c.rec?.fit === fitFilter);
   const sortedCards = [...visibleCards].sort((a, b) => {
     switch (sortBy) {
@@ -256,9 +345,15 @@ export default function HealthyChowApp() {
             <button className="btn cta" onClick={() => go("diet")}>
               Get started
             </button>
-            <button className="btn ghost" onClick={() => go("diet")}>
-              I already have an account
-            </button>
+            {user ? (
+              <button className="btn ghost" onClick={signOut}>
+                Sign out ({user.email})
+              </button>
+            ) : (
+              <button className="btn ghost" onClick={() => openAuth("login")}>
+                Log in
+              </button>
+            )}
             <div className="freenote">Free to search. Subscribe to reveal your picks.</div>
           </div>
         </section>
@@ -529,15 +624,15 @@ export default function HealthyChowApp() {
             </span>
           </div>
 
-          {!loading && !subscribed && cards.some((c) => c.rec) && (
+          {!loading && !isSubscribed && cards.some((c) => c.rec) && (
             <div className="paywall">
               <h3>🔒 {cards.filter((c) => c.rec).length} picks ready near {loc}</h3>
               <p>Subscribe to unlock the exact order, modifications, and macros for every spot.</p>
               <div className="plans">
-                <button className="btn cta" onClick={() => setSubscribed(true)}>
+                <button className="btn cta" onClick={startSubscribe}>
                   $2.99 / month
                 </button>
-                <button className="btn year" onClick={() => setSubscribed(true)}>
+                <button className="btn year" onClick={startSubscribe}>
                   $19.99 / year
                 </button>
               </div>
@@ -644,7 +739,7 @@ export default function HealthyChowApp() {
                 </div>
 
                 {c.rec ? (
-                  subscribed ? (
+                  isSubscribed ? (
                   <>
                     <div className="order">
                       <div className="order-label">
@@ -789,6 +884,58 @@ export default function HealthyChowApp() {
               </>
             )}
             <button className="btn ghost" onClick={() => setSmsCard(null)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {authOpen && (
+        <div className="modal-overlay" onClick={() => setAuthOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">
+              {authMode === "signup" ? "Create your account" : "Log in"}
+            </div>
+            <p className="modal-sub">
+              {authMode === "signup"
+                ? "Save your diet and unlock your picks."
+                : "Welcome back to Healthy Chow."}
+            </p>
+            <input
+              className="modal-input"
+              type="email"
+              autoComplete="email"
+              placeholder="Email"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+            />
+            <input
+              className="modal-input"
+              type="password"
+              autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+              placeholder="Password"
+              value={authPw}
+              onChange={(e) => setAuthPw(e.target.value)}
+            />
+            {authMsg && <p className="modal-err">{authMsg}</p>}
+            <button
+              className="btn cta"
+              disabled={authState === "working" || !authEmail || !authPw}
+              onClick={doAuth}
+            >
+              {authState === "working"
+                ? "Please wait..."
+                : authMode === "signup"
+                  ? "Create account"
+                  : "Log in"}
+            </button>
+            <button
+              className="btn ghost"
+              onClick={() => openAuth(authMode === "signup" ? "login" : "signup")}
+            >
+              {authMode === "signup" ? "I already have an account" : "Create an account instead"}
+            </button>
+            <button className="btn ghost" onClick={() => setAuthOpen(false)}>
               Close
             </button>
           </div>
