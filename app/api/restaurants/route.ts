@@ -13,6 +13,10 @@ import {
 import { authoredRec, knownChain, recToPick, type ResultCard } from "@/lib/recommend";
 import { generateRecs, hasEngine, type PlaceForRec } from "@/lib/engine";
 
+// Live menu lookups (web search + fetch per restaurant) can take a while; allow
+// up to the platform max so the request isn't cut off mid-analysis.
+export const maxDuration = 60;
+
 const FITRANK: Record<Fit, number> = { strong: 0, good: 1, weak: 2 };
 const isDiet = (v: string | null): v is DietId => DIETS.some((d) => d.id === v);
 const isStyle = (v: string): v is StyleId => STYLES.some((s) => s.id === v);
@@ -123,11 +127,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Only show restaurants we actually have a pick for (hide "no pick" cards).
+    const withRec = top.map((b) => b.card).filter((c) => c.rec !== null);
+
     return Response.json({
       source: "live",
       loc: resolvedLoc,
       center: { lat: center.lat, lng: center.lng },
-      cards: sortCards(top.map((b) => b.card)),
+      cards: sortCards(withRec),
     });
   } catch (err) {
     // Any geocode/Places failure (billing, quota, network) degrades to sample data.

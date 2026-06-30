@@ -90,10 +90,12 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
   const siteHint = place.website ? ` Their website may be ${place.website}.` : "";
   const system =
     `You are Healthy Chow's ordering scout for someone on a ${diet} diet: ${DIET_GUIDE[diet]}\n\n` +
-    `Use web search to find this restaurant's ACTUAL, CURRENT menu, then pick real menu items that can be made to fit the diet, with specific modifications (what to remove, what to add or swap).\n` +
+    `Find this restaurant's ACTUAL, CURRENT menu, then pick real menu items that can be made to fit the diet, with specific modifications (what to remove, what to add or swap).\n` +
+    `How to find the menu: use web_search to locate their menu, then use web_fetch to open their website and any menu page or menu PDF and read the real item names and prices. Many restaurant menus are PDFs or on the restaurant's own site; fetch and read them before deciding nothing fits.\n` +
     `Rules:\n` +
-    `- Recommend up to 3 DISTINCT options. Aim for 3 when reasonable.\n` +
-    `- Only set "onMenu": true for a main that genuinely appears on THIS restaurant's menu. If you cannot confirm an item is on their menu, you may still suggest a realistic order for the cuisine but set "onMenu": false.\n` +
+    `- ALWAYS return 2 to 3 options. Never return an empty list. Aim for 3 when reasonable.\n` +
+    `- Almost every restaurant has something that can be modified to fit (a protein, a salad, a bowl, a burger without the bun). Work to find it.\n` +
+    `- Only set "onMenu": true for a main that genuinely appears on THIS restaurant's menu. If you cannot confirm an item is on their menu, still suggest a realistic order for the cuisine but set "onMenu": false.\n` +
     `- Each option is a full meal: a main dish plus a complementary side that also fits the ${diet} diet.\n` +
     `- "price": the price in US dollars of the main item (a number like 12.99). If you read it from their actual menu set "priceOnMenu": true. If you cannot find a real price, give your best estimate and set "priceOnMenu": false.\n` +
     `- Give integer macro ESTIMATES (net carbs, sugar, protein) for the whole meal. Approximate is fine.\n` +
@@ -106,17 +108,33 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
     `Restaurant: ${place.name}${where} (cuisine types: ${place.types.join(", ") || "restaurant"}).${siteHint} ` +
     `Find their real menu and give ${diet} orders.`;
 
-  let resp;
-  try {
-    resp = await anthropic.messages.create({
+  const webSearch = { type: "web_search_20250305", name: "web_search", max_uses: 5 } as const;
+  const webFetch = {
+    type: "web_fetch_20260309",
+    name: "web_fetch",
+    max_uses: 5,
+    max_content_tokens: 60000,
+  } as const;
+
+  const run = (withFetch: boolean) =>
+    anthropic.messages.create({
       model: MODEL,
-      max_tokens: 3000,
-      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }],
+      max_tokens: 3500,
+      tools: withFetch ? [webSearch, webFetch] : [webSearch],
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: user }],
     });
+
+  let resp;
+  try {
+    resp = await run(true);
   } catch {
-    return null; // search/model failure -> this card shows "Pick soon"
+    // If web_fetch is unavailable for any reason, degrade to search-only.
+    try {
+      resp = await run(false);
+    } catch {
+      return null;
+    }
   }
 
   const text = resp.content
