@@ -16,14 +16,6 @@ const MODEL = "claude-haiku-4-5";
 const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
 export const hasEngine = () => anthropic !== null;
 
-// Debug: last error thrown by a model call, surfaced by the API for diagnosis.
-export let lastEngineError: string | null = null;
-export const popEngineError = () => {
-  const e = lastEngineError;
-  lastEngineError = null;
-  return e;
-};
-
 export interface PlaceForRec {
   name: string;
   types: string[];
@@ -148,8 +140,7 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
           system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
           messages,
         });
-      } catch (e) {
-        lastEngineError = (e instanceof Error ? e.message : String(e)).slice(0, 400);
+      } catch {
         return null;
       }
       if (resp.stop_reason === "pause_turn") {
