@@ -122,6 +122,9 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
     name: "web_fetch",
     max_uses: 5,
     max_content_tokens: 60000,
+    // Required for models without programmatic tool calling (e.g. haiku): the
+    // model invokes the fetch directly rather than from code execution.
+    allowed_callers: ["direct"],
   } as const;
 
   // Server tools (web_search, web_fetch) can return stop_reason "pause_turn" when
