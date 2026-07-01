@@ -116,8 +116,12 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
     `Restaurant: ${place.name}${where} (cuisine types: ${place.types.join(", ") || "restaurant"}).${siteHint} ` +
     `Find their real menu and give ${diet} orders.`;
 
-  const webSearch = { type: "web_search_20250305", name: "web_search", max_uses: 5 } as const;
-  const webFetch = {
+  const webSearch: Anthropic.WebSearchTool20250305 = {
+    type: "web_search_20250305",
+    name: "web_search",
+    max_uses: 5,
+  };
+  const webFetch: Anthropic.WebFetchTool20260309 = {
     type: "web_fetch_20260309",
     name: "web_fetch",
     max_uses: 5,
@@ -125,13 +129,13 @@ async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null>
     // Required for models without programmatic tool calling (e.g. haiku): the
     // model invokes the fetch directly rather than from code execution.
     allowed_callers: ["direct"],
-  } as const;
+  };
 
   // Server tools (web_search, web_fetch) can return stop_reason "pause_turn" when
   // the turn isn't finished (e.g. reading a large menu PDF). We must resume by
   // sending the partial assistant turn back, looping until the model finishes.
   const runLoop = async (
-    tools: Array<typeof webSearch | typeof webFetch>,
+    tools: Anthropic.ToolUnion[],
   ): Promise<Record<string, unknown> | null> => {
     const messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
     for (let turn = 0; turn < 5; turn++) {
