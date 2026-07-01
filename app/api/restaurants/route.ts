@@ -11,7 +11,7 @@ import {
   tagFromTypes,
 } from "@/lib/places";
 import { authoredRec, knownChain, recToPick, type ResultCard } from "@/lib/recommend";
-import { generateRecs, hasEngine, type PlaceForRec } from "@/lib/engine";
+import { generateRecs, hasEngine, popEngineError, type PlaceForRec } from "@/lib/engine";
 
 // Live menu lookups (web search + fetch per restaurant) can take a while; allow
 // up to the platform max so the request isn't cut off mid-analysis.
@@ -136,6 +136,7 @@ export async function GET(request: NextRequest) {
       loc: resolvedLoc,
       center: { lat: center.lat, lng: center.lng },
       cards: sortCards(withRec),
+      debugErr: popEngineError(),
     });
   } catch (err) {
     // Any geocode/Places failure (billing, quota, network) degrades to sample data.
