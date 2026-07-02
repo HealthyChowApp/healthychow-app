@@ -77,11 +77,27 @@ const ALLERGEN_WORDS: Record<string, string[]> = {
   cilantro: ["cilantro"],
 };
 
+const avoidWords = (avoid: string[]) =>
+  avoid.flatMap((a) => ALLERGEN_WORDS[a.toLowerCase()] ?? [a.toLowerCase()]);
+
+// True if one option's positive content (main, side, additions) mentions an
+// avoided ingredient that its remove list does not explicitly strip.
+// "Bacon Cheeseburger" + remove "No bacon" passes; "add bacon if available" fails.
+export function optionViolatesAvoid(
+  o: { main: string; side: string; mods: { rm: string[]; add: string[] } },
+  avoid: string[],
+): boolean {
+  if (!avoid.length) return false;
+  const pos = `${o.main} ${o.side} ${o.mods.add.join(" ")}`.toLowerCase();
+  const rm = o.mods.rm.join(" ").toLowerCase();
+  return avoidWords(avoid).some((w) => pos.includes(w) && !rm.includes(w));
+}
+
 // True if a pick's positive content (mains, sides, additions) mentions an
 // avoided ingredient. Removal mods don't count: "No bun" is compliant.
 export function pickConflictsWithAvoid(pick: Pick, avoid: string[]): boolean {
   if (!avoid.length) return false;
-  const words = avoid.flatMap((a) => ALLERGEN_WORDS[a.toLowerCase()] ?? [a.toLowerCase()]);
+  const words = avoidWords(avoid);
   return pick.options.some((o) => {
     const text = `${o.main} ${o.side} ${o.mods.add.join(" ")}`.toLowerCase();
     return words.some((w) => text.includes(w));

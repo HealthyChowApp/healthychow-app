@@ -8,6 +8,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { DietId, Fit, MealOption, Pick } from "./data";
+import { optionViolatesAvoid } from "./recommend";
 
 // Cheap, fast tier for this high-volume task. Bump to "claude-sonnet-4-6" if
 // dietary reasoning needs more depth.
@@ -93,8 +94,8 @@ async function groundOne(diet: DietId, place: PlaceForRec, avoid: string[]): Pro
   const siteHint = place.website ? ` Their website may be ${place.website}.` : "";
   const avoidRule = avoid.length
     ? `\nCRITICAL ALLERGY / EXCLUSION RULE: the user must completely avoid: ${avoid.join(", ")}. ` +
-      `Never recommend any item or side that contains these, and never suggest adding them. ` +
-      `If a good base item contains one, only use it when the ingredient is clearly removable, and list that removal explicitly. ` +
+      `Never recommend any item or side that contains these, and never suggest adding them, not even as optional ("if available"). ` +
+      `If a good base item contains one, only use it when the ingredient is clearly removable, and name that exact ingredient in "remove". ` +
       `This overrides every other preference.\n`
     : "";
   const system =
@@ -189,7 +190,10 @@ async function groundOne(diet: DietId, place: PlaceForRec, avoid: string[]): Pro
         protein: num(o.protein),
       };
     })
-    .filter((o: MealOption) => o.main);
+    .filter((o: MealOption) => o.main)
+    // Hard server-side enforcement: drop any option that mentions an avoided
+    // ingredient without explicitly removing it, regardless of what the model said.
+    .filter((o: MealOption) => !optionViolatesAvoid(o, avoid));
   if (options.length === 0) return null;
 
   // Restaurant-level price = cheapest option (used for budget/display fallback).
