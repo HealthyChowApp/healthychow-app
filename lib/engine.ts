@@ -39,8 +39,11 @@ const money = (x: unknown): number | undefined => {
 const arr = (x: unknown): string[] => (Array.isArray(x) ? x.map(clean).filter(Boolean) : []);
 
 // Per-instance cache so repeat restaurants on later requests are free.
+// Keyed by diet + avoid list + restaurant, so allergy changes never reuse
+// picks generated under different constraints.
 const cache = new Map<string, Pick>();
-const cacheKey = (diet: DietId, name: string) => `${diet}::${name.toLowerCase().trim()}`;
+const cacheKey = (diet: DietId, avoid: string[], name: string) =>
+  `${diet}::${avoid.map((a) => a.toLowerCase()).sort().join(",")}::${name.toLowerCase().trim()}`;
 
 const DIET_GUIDE: Record<DietId, string> = {
   keto: "Very low carb (aim under ~15g net carbs), high fat. Cut bread, buns, rice, pasta, potatoes, sugary sauces, most fruit. Favor meat, fish, eggs, cheese, avocado, oils, low-carb veg.",
@@ -83,13 +86,19 @@ function extractJson(text: string): Record<string, unknown> | null {
 }
 
 // Ground ONE restaurant: search the web for its real menu, return a pick.
-async function groundOne(diet: DietId, place: PlaceForRec): Promise<Pick | null> {
+async function groundOne(diet: DietId, place: PlaceForRec, avoid: string[]): Promise<Pick | null> {
   if (!anthropic) return null;
 
   const where = place.area ? ` in ${place.area}` : "";
   const siteHint = place.website ? ` Their website may be ${place.website}.` : "";
+  const avoidRule = avoid.length
+    ? `\nCRITICAL ALLERGY / EXCLUSION RULE: the user must completely avoid: ${avoid.join(", ")}. ` +
+      `Never recommend any item or side that contains these, and never suggest adding them. ` +
+      `If a good base item contains one, only use it when the ingredient is clearly removable, and list that removal explicitly. ` +
+      `This overrides every other preference.\n`
+    : "";
   const system =
-    `You are Healthy Chow's ordering scout for someone on a ${diet} diet: ${DIET_GUIDE[diet]}\n\n` +
+    `You are Healthy Chow's ordering scout for someone on a ${diet} diet: ${DIET_GUIDE[diet]}\n${avoidRule}\n` +
     `Find this restaurant's ACTUAL, CURRENT menu, then pick real menu items that can be made to fit the diet, with specific modifications (what to remove, what to add or swap).\n` +
     `How to find the menu: use web_search to locate their menu, then use web_fetch to open their website and any menu page or menu PDF and read the real item names and prices. Many restaurant menus are PDFs or on the restaurant's own site; fetch and read them before deciding nothing fits.\n` +
     `Rules:\n` +
@@ -206,24 +215,28 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R
   return out;
 }
 
-export async function generateRecs(diet: DietId, places: PlaceForRec[]): Promise<Map<string, Pick>> {
+export async function generateRecs(
+  diet: DietId,
+  places: PlaceForRec[],
+  avoid: string[] = [],
+): Promise<Map<string, Pick>> {
   const out = new Map<string, Pick>();
   if (!anthropic || places.length === 0) return out;
 
   // Serve cached, collect misses.
   const misses: PlaceForRec[] = [];
   for (const p of places) {
-    const cached = cache.get(cacheKey(diet, p.name));
+    const cached = cache.get(cacheKey(diet, avoid, p.name));
     if (cached) out.set(p.name, cached);
     else misses.push(p);
   }
   if (misses.length === 0) return out;
 
-  const picks = await mapLimit(misses, 6, (p) => groundOne(diet, p));
+  const picks = await mapLimit(misses, 6, (p) => groundOne(diet, p, avoid));
   misses.forEach((p, i) => {
     const pick = picks[i];
     if (pick) {
-      cache.set(cacheKey(diet, p.name), pick);
+      cache.set(cacheKey(diet, avoid, p.name), pick);
       out.set(p.name, pick);
     }
   });

@@ -62,3 +62,28 @@ export function authoredRec(name: string, diet: DietId): Pick | null {
   const rec = knownChain(name)?.recs[diet];
   return rec ? recToPick(rec) : null;
 }
+
+// Ingredient keywords per avoid-list entry, used to catch authored picks that
+// conflict with a user's allergies/exclusions. Deliberately broad: a false
+// positive just means the engine regenerates the pick under the constraint.
+const ALLERGEN_WORDS: Record<string, string[]> = {
+  gluten: ["bun", "bread", "tortilla", "flour", "breaded", "crouton", "pasta", "hoagie", "sub roll", "flatbread"],
+  dairy: ["cheese", "butter", "cream", "ranch", "feta", "brie", "milk", "yogurt", "queso", "mozzarella", "cheddar", "provolone"],
+  nuts: ["almond", "peanut", "cashew", "walnut", "pecan", "pistachio", "nut"],
+  shellfish: ["shrimp", "crab", "lobster", "clam", "oyster", "scallop", "prawn"],
+  soy: ["soy", "tofu", "edamame", "teriyaki"],
+  pork: ["pork", "bacon", "ham", "sausage", "carnitas", "prosciutto", "pepperoni", "chorizo"],
+  eggs: ["egg", "omelet", "omelette", "mayo", "aioli", "caesar"],
+  cilantro: ["cilantro"],
+};
+
+// True if a pick's positive content (mains, sides, additions) mentions an
+// avoided ingredient. Removal mods don't count: "No bun" is compliant.
+export function pickConflictsWithAvoid(pick: Pick, avoid: string[]): boolean {
+  if (!avoid.length) return false;
+  const words = avoid.flatMap((a) => ALLERGEN_WORDS[a.toLowerCase()] ?? [a.toLowerCase()]);
+  return pick.options.some((o) => {
+    const text = `${o.main} ${o.side} ${o.mods.add.join(" ")}`.toLowerCase();
+    return words.some((w) => text.includes(w));
+  });
+}

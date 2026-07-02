@@ -70,6 +70,15 @@ function directionsSms(c: ResultCard) {
   return `sms:?&body=${encodeURIComponent(body)}`;
 }
 
+// Outbound links go through /api/out for click logging + affiliate wrapping.
+function outLink(c: ResultCard, kind: "order" | "delivery") {
+  const dest =
+    kind === "delivery"
+      ? `https://www.doordash.com/search/store/${encodeURIComponent(c.name)}`
+      : (c.url ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`);
+  return `/api/out?url=${encodeURIComponent(dest)}&r=${encodeURIComponent(c.name)}&k=${kind}`;
+}
+
 export default function HealthyChowApp() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [diet, setDiet] = useState<DietId | null>(null);
@@ -85,6 +94,9 @@ export default function HealthyChowApp() {
   const [cards, setCards] = useState<ResultCard[]>([]);
   const [source, setSource] = useState<"live" | "sample">("sample");
   const [loading, setLoading] = useState(false);
+  const [refining, setRefining] = useState(false); // quick results shown, AI picks still filling in
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({}); // per-card "more picks"
+  const [hasSaved, setHasSaved] = useState(false); // returning user with saved preferences
   const [subscribed, setSubscribed] = useState(false);
   const [fitFilter, setFitFilter] = useState<FitFilter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("fit");
@@ -288,21 +300,28 @@ export default function HealthyChowApp() {
     }
   }
 
-  function useCurrentLocation() {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoStatus("error");
-      return;
-    }
+  // Promise-based geolocation, shared by the loc screen and the welcome shortcut.
+  function geolocate(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: false, timeout: 10000 },
+      );
+    });
+  }
+
+  async function useCurrentLocation() {
     setGeoStatus("locating");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLoc("Current location");
-        setGeoStatus("done");
-      },
-      () => setGeoStatus("error"),
-      { enableHighAccuracy: false, timeout: 10000 },
-    );
+    const c = await geolocate();
+    if (c) {
+      setCoords(c);
+      setLoc("Current location");
+      setGeoStatus("done");
+    } else {
+      setGeoStatus("error");
+    }
   }
 
   // Default to the user's current location: request it automatically when the
@@ -313,6 +332,26 @@ export default function HealthyChowApp() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
+
+  // Returning users: restore saved preferences so they can skip the wizard.
+  useEffect(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem("hc-prefs") ?? "null");
+      if (p?.diet && DIETS.some((d) => d.id === p.diet)) {
+        setDiet(p.diet as DietId);
+        if (Array.isArray(p.avoid)) setAvoid(p.avoid.filter((a: string) => AVOID.includes(a)));
+        if (Array.isArray(p.styles) && p.styles.length) {
+          const valid = p.styles.filter((s: string) => STYLES.some((x) => x.id === s));
+          if (valid.length) setStyles(valid as StyleId[]);
+        }
+        if (typeof p.budget === "number") setBudget(p.budget);
+        if (typeof p.loc === "string" && p.loc && p.loc !== "Current location") setLoc(p.loc);
+        setHasSaved(true);
+      }
+    } catch {
+      // corrupted prefs: ignore, wizard runs as normal
+    }
+  }, []);
 
   const go = (s: Screen) => {
     setScreen(s);
@@ -340,25 +379,61 @@ export default function HealthyChowApp() {
         return 0; // "fit" keeps the server's fit-then-distance order
     }
   });
+  // Free sample: the first visible pick is unlocked for non-subscribers.
+  const freeName = !isSubscribed ? (sortedCards.find((c) => c.rec)?.name ?? null) : null;
 
-  async function findPicks() {
+  async function findPicks(oc?: { lat: number; lng: number }) {
     if (!diet) return;
+    const useCoords = oc ?? coords;
     go("results");
     setLoading(true);
+    setRefining(false);
     setFitFilter("all");
     setSortBy("fit");
+    setExpanded({});
+
+    const params = new URLSearchParams({
+      diet,
+      styles: styles.join(","),
+      budget: String(budget),
+    });
+    if (avoid.length) params.set("avoid", avoid.join(","));
+    if (useCoords) {
+      params.set("lat", String(useCoords.lat));
+      params.set("lng", String(useCoords.lng));
+    } else {
+      params.set("loc", loc);
+    }
+
+    // Remember preferences so returning users can skip the wizard.
     try {
-      const params = new URLSearchParams({
-        diet,
-        styles: styles.join(","),
-        budget: String(budget),
-      });
-      if (coords) {
-        params.set("lat", String(coords.lat));
-        params.set("lng", String(coords.lng));
-      } else {
-        params.set("loc", loc);
+      localStorage.setItem("hc-prefs", JSON.stringify({ diet, avoid, styles, budget, loc }));
+      setHasSaved(true);
+    } catch {
+      // storage unavailable (private mode); not a problem
+    }
+
+    // Phase 1: instant results. Known chains resolve immediately; local spots
+    // come back as placeholders we render as "reading their menu" skeletons.
+    let quickShown = false;
+    try {
+      const qres = await fetch(`/api/restaurants?${params.toString()}&quick=1`);
+      const q = await qres.json();
+      if (Array.isArray(q.cards) && q.cards.length) {
+        if (q.loc) setLoc(q.loc);
+        setCards(q.cards);
+        setCenter(q.center ?? null);
+        setSource(q.source === "live" ? "live" : "sample");
+        setLoading(false);
+        setRefining(true);
+        quickShown = true;
       }
+    } catch {
+      // quick pass failed; the full request below still covers us
+    }
+
+    // Phase 2: the full run with AI menu analysis replaces the placeholders.
+    try {
       const res = await fetch(`/api/restaurants?${params.toString()}`);
       const data = await res.json();
       if (data.loc) setLoc(data.loc);
@@ -366,12 +441,34 @@ export default function HealthyChowApp() {
       setCenter(data.center ?? null);
       setSource(data.source === "live" ? "live" : "sample");
     } catch {
-      setCards([]);
-      setCenter(null);
-      setSource("sample");
+      if (!quickShown) {
+        setCards([]);
+        setCenter(null);
+        setSource("sample");
+      }
     } finally {
       setLoading(false);
+      setRefining(false);
     }
+  }
+
+  // Welcome-screen shortcut for returning users: geolocate if needed, then search.
+  async function quickFind() {
+    let c = coords;
+    if (!c && !loc) {
+      setGeoStatus("locating");
+      c = await geolocate();
+      if (c) {
+        setCoords(c);
+        setLoc("Current location");
+        setGeoStatus("done");
+      }
+    }
+    if (!c && !loc) {
+      go("loc"); // no permission and no saved town: ask once
+      return;
+    }
+    findPicks(c ?? undefined);
   }
 
   return (
@@ -399,32 +496,46 @@ export default function HealthyChowApp() {
               exact order, modifications and all, at the spots near you.
             </p>
 
-            {!isSubscribed && (
-              <div className="pricing">
-                <div className="amt">
-                  $2<span>.99 / month</span>
+            {isSubscribed && <div className="member">✓ You&apos;re a member. Your picks are unlocked.</div>}
+            {hasSaved && diet && (
+              <div className="quickcard">
+                <div className="quicklab">Your usual</div>
+                <div className="quickchips">
+                  <span className="s diet" style={{ background: color }}>
+                    {dietName(diet)}
+                  </span>
+                  {avoid.map((a) => (
+                    <span key={a} className="s">
+                      No {a}
+                    </span>
+                  ))}
+                  <span className="s">≤ ${budget}/meal</span>
+                  {loc && <span className="s">📍 {loc}</span>}
                 </div>
-                <div className="amt-alt">
-                  or $19.99 / year <em>save 44%</em>
-                </div>
-                <ul>
-                  <li>
-                    <span className="tick">✓</span> Picks near you for any diet
-                  </li>
-                  <li>
-                    <span className="tick">✓</span> Off-menu swaps (no bun, no sugar)
-                  </li>
-                  <li>
-                    <span className="tick">✓</span> Big chains and local spots
-                  </li>
-                </ul>
               </div>
             )}
-            {isSubscribed && <div className="member">✓ You&apos;re a member. Your picks are unlocked.</div>}
             <div className="spacer" />
-            <button className="btn cta" onClick={() => go("diet")}>
-              {user ? "Find my picks" : "Get started"}
-            </button>
+            {hasSaved && diet ? (
+              <>
+                <button className="btn cta" onClick={quickFind}>
+                  {geoStatus === "locating" ? "Locating you..." : "Find my picks"}
+                </button>
+                <button className="btn ghost" onClick={() => go("diet")}>
+                  Edit preferences
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn cta"
+                onClick={() => {
+                  // Ask for location up front so the location step is usually pre-filled.
+                  if (geoStatus === "idle" && !coords) useCurrentLocation();
+                  go("diet");
+                }}
+              >
+                Get started
+              </button>
+            )}
             {user ? (
               <button className="btn ghost" onClick={signOut}>
                 Sign out ({user.email})
@@ -435,7 +546,7 @@ export default function HealthyChowApp() {
               </button>
             )}
             {!isSubscribed && (
-              <div className="freenote">Free to search. Subscribe to reveal your picks.</div>
+              <div className="freenote">Free to search. Your first pick is free, too.</div>
             )}
           </div>
         </section>
@@ -579,7 +690,7 @@ export default function HealthyChowApp() {
           <div className="pad">
             <h2>What&apos;s your budget?</h2>
             <p className="sub">Per meal. We&apos;ll only show picks that fit.</p>
-            <div className="budget-val">Up to ${budget}</div>
+            <div className="budget-val">Up to ${budget} per meal</div>
             <input
               type="range"
               min={8}
@@ -646,7 +757,7 @@ export default function HealthyChowApp() {
             )}
           </div>
           <div className="btn-row">
-            <button className="btn cta" onClick={findPicks}>
+            <button className="btn cta" onClick={() => findPicks()}>
               Find my picks
             </button>
           </div>
@@ -666,8 +777,10 @@ export default function HealthyChowApp() {
           <div className="summary">
             <div className="lab">
               {loading
-                ? "Reading the menus near you..."
-                : `${source === "live" ? "Live picks" : "Sample picks"} near ${loc}`}
+                ? "Finding spots near you..."
+                : refining
+                  ? `Reading live menus near ${loc}...`
+                  : `${source === "live" ? "Live picks" : "Sample picks"} near ${loc}`}
             </div>
             <span className="s diet" style={{ background: color }}>
               {dietName(diet)}
@@ -677,7 +790,7 @@ export default function HealthyChowApp() {
                 {STYLES.find((x) => x.id === s)?.t}
               </span>
             ))}
-            <span className="s">≤ ${budget}</span>
+            <span className="s">≤ ${budget}/meal</span>
             {avoid.map((a) => (
               <span key={a} className="s">
                 No {a}
@@ -708,8 +821,11 @@ export default function HealthyChowApp() {
 
           {!loading && !isSubscribed && cards.some((c) => c.rec) && (
             <div className="paywall">
-              <h3>🔒 {cards.filter((c) => c.rec).length} picks ready near {loc}</h3>
-              <p>Subscribe to unlock the exact order, modifications, and macros for every spot.</p>
+              <h3>🎁 Your first pick below is free</h3>
+              <p>
+                Subscribe to unlock all {cards.filter((c) => c.rec).length} picks near {loc}, with
+                the exact order, modifications, and macros for every spot.
+              </p>
               <div className="plans">
                 <button className="btn cta" onClick={() => startSubscribe("monthly")}>
                   $2.99 / month
@@ -720,18 +836,6 @@ export default function HealthyChowApp() {
               </div>
             </div>
           )}
-
-          <div className="filterbar">
-            <span className="pill on" style={{ background: color, borderColor: color }}>
-              {dietName(diet)}
-            </span>
-            {STYLES.map((s) => (
-              <span key={s.id} className={`pill${styles.includes(s.id) ? " on" : ""}`}>
-                {s.t}
-              </span>
-            ))}
-            <span className="pill">≤ ${budget}</span>
-          </div>
 
           {!loading && source === "live" && center && cards.some((c) => c.lat) && (
             <MapImg
@@ -821,13 +925,16 @@ export default function HealthyChowApp() {
                 </div>
 
                 {c.rec ? (
-                  isSubscribed ? (
+                  isSubscribed || c.name === freeName ? (
                   <>
+                    {!isSubscribed && c.name === freeName && (
+                      <div className="free-strip">🎁 Free sample pick</div>
+                    )}
                     <div className="order">
                       <div className="order-label">
                         {c.rec.options.length > 1 ? "Top picks" : "Order this"}
                       </div>
-                      {c.rec.options.map((o, oi) => (
+                      {(expanded[c.name] ? c.rec.options : c.rec.options.slice(0, 1)).map((o, oi) => (
                         <div key={oi} className={`pick${oi > 0 ? " alt" : ""}`}>
                           <div className="order-item">
                             {o.main}
@@ -875,6 +982,18 @@ export default function HealthyChowApp() {
                           </div>
                         </div>
                       ))}
+                      {c.rec.options.length > 1 && (
+                        <button
+                          className="more-btn"
+                          onClick={() =>
+                            setExpanded((e) => ({ ...e, [c.name]: !e[c.name] }))
+                          }
+                        >
+                          {expanded[c.name]
+                            ? "Show less"
+                            : `+ ${c.rec.options.length - 1} more pick${c.rec.options.length > 2 ? "s" : ""}`}
+                        </button>
+                      )}
                     </div>
                     <div className="rfoot">
                       <div className="rfoot-note">Prices per option above</div>
@@ -892,12 +1011,19 @@ export default function HealthyChowApp() {
                             Send directions
                           </button>
                         )}
+                        {c.style !== "dine-in" && (
+                          <a
+                            className="btn dir-btn"
+                            href={outLink(c, "delivery")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Delivery
+                          </a>
+                        )}
                         <a
                           className="btn order-btn"
-                          href={
-                            c.url ??
-                            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`
-                          }
+                          href={outLink(c, "order")}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -907,14 +1033,31 @@ export default function HealthyChowApp() {
                     </div>
                   </>
                   ) : (
-                    <div className="locked">
-                      <span className="lk">🔒</span>
-                      <span>
-                        <b>Your {dietName(diet)} pick is ready.</b> Subscribe to see the exact
-                        order, swaps, and macros.
-                      </span>
-                    </div>
+                    <>
+                      <div className="locked">
+                        <span className="lk">🔒</span>
+                        <span>
+                          <b>Your {dietName(diet)} pick is ready.</b> Unlock the exact order,
+                          swaps, and macros.
+                        </span>
+                      </div>
+                      <div className="lock-cta">
+                        <button className="btn cta sm" onClick={() => startSubscribe("monthly")}>
+                          Unlock all picks · $2.99/mo
+                        </button>
+                        <button className="btn ghost sm" onClick={() => startSubscribe("yearly")}>
+                          $19.99/yr
+                        </button>
+                      </div>
+                    </>
                   )
+                ) : refining ? (
+                  <div className="order">
+                    <div className="skel-line w70" />
+                    <div className="skel-line w90" />
+                    <div className="skel-line w45" />
+                    <div className="skel-note">Reading their menu for {dietName(diet)} picks...</div>
+                  </div>
                 ) : (
                   <>
                     <div className="order">
@@ -929,10 +1072,7 @@ export default function HealthyChowApp() {
                       <div className="rfoot-actions">
                         <a
                           className="btn order-btn"
-                          href={
-                            c.url ??
-                            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name)}`
-                          }
+                          href={outLink(c, "order")}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

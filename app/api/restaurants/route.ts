@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { DIETS, RESTAURANTS, STYLES, type DietId, type Fit, type StyleId } from "@/lib/data";
+import { AVOID, DIETS, RESTAURANTS, STYLES, type DietId, type Fit, type StyleId } from "@/lib/data";
 import {
   geocode,
   hasPlacesKey,
@@ -10,7 +10,13 @@ import {
   styleFromTypes,
   tagFromTypes,
 } from "@/lib/places";
-import { authoredRec, knownChain, recToPick, type ResultCard } from "@/lib/recommend";
+import {
+  authoredRec,
+  knownChain,
+  pickConflictsWithAvoid,
+  recToPick,
+  type ResultCard,
+} from "@/lib/recommend";
 import { generateRecs, hasEngine, type PlaceForRec } from "@/lib/engine";
 
 // Live menu lookups (web search + fetch per restaurant) can take a while; allow
@@ -31,12 +37,13 @@ function sortCards(cards: ResultCard[]): ResultCard[] {
 }
 
 // Fallback: build cards from the curated sample data (used when no key or on error).
-function sampleCards(diet: DietId, styles: StyleId[], budget: number): ResultCard[] {
+function sampleCards(diet: DietId, styles: StyleId[], budget: number, avoid: string[]): ResultCard[] {
   const cards = RESTAURANTS.filter((r) => {
     const rec = r.recs[diet];
     if (!rec) return false;
     if (styles.length && !styles.includes(r.style)) return false;
     if (rec.price > budget) return false;
+    if (avoid.length && pickConflictsWithAvoid(recToPick(rec), avoid)) return false;
     return true;
   }).map((r) => ({
     name: r.name,
@@ -58,6 +65,14 @@ export async function GET(request: NextRequest) {
   const diet: DietId = dietParam;
   const styles = (sp.get("styles") ?? "").split(",").filter(isStyle);
   const budget = Number(sp.get("budget") ?? "40") || 40;
+  // Allergies/exclusions: only accept entries from our known AVOID list.
+  const avoid = (sp.get("avoid") ?? "")
+    .split(",")
+    .map((a) => a.trim())
+    .filter((a) => AVOID.some((k) => k.toLowerCase() === a.toLowerCase()));
+  // quick=1: skip the engine and return instantly (authored chains resolved,
+  // everything else rec:null as a pending placeholder the client can skeleton).
+  const quick = sp.get("quick") === "1";
   const loc = (sp.get("loc") ?? "").trim();
   const latStr = sp.get("lat");
   const lngStr = sp.get("lng");
@@ -66,7 +81,7 @@ export async function GET(request: NextRequest) {
   const haveCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
   if (!hasPlacesKey() || (!loc && !haveCoords)) {
-    return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget) });
+    return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget, avoid) });
   }
 
   try {
@@ -79,7 +94,7 @@ export async function GET(request: NextRequest) {
       center = await geocode(loc);
     }
     if (!center) {
-      return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget) });
+      return Response.json({ source: "sample", loc, cards: sampleCards(diet, styles, budget, avoid) });
     }
     const places = await searchRestaurants(center, styles);
 
@@ -91,7 +106,10 @@ export async function GET(request: NextRequest) {
       const style = chain?.style ?? p.searchedStyle ?? styleFromTypes(p.types, p.priceLevel);
       if (styles.length && !styles.includes(style)) continue;
 
-      const rec = chain ? authoredRec(p.name, diet) : null;
+      // Authored chain pick, unless it conflicts with an avoided ingredient,
+      // in which case the engine regenerates it under the constraint.
+      let rec = chain ? authoredRec(p.name, diet) : null;
+      if (rec && pickConflictsWithAvoid(rec, avoid)) rec = null;
       const price = rec?.price ?? priceFromLevel(p.priceLevel);
       if (price > budget) continue;
 
@@ -116,11 +134,22 @@ export async function GET(request: NextRequest) {
     built.sort((a, b) => parseFloat(a.card.dist) - parseFloat(b.card.dist));
     const top = built.slice(0, 10);
 
+    // Quick mode: return instantly. Chains carry their authored picks; the rest
+    // stay rec:null so the client can render "reading their menu" skeletons.
+    if (quick) {
+      return Response.json({
+        source: "live",
+        loc: resolvedLoc,
+        center: { lat: center.lat, lng: center.lng },
+        cards: sortCards(top.map((b) => b.card)),
+      });
+    }
+
     // Engine: generate picks for restaurants without an authored rec.
     if (hasEngine()) {
       const need = top.filter((b) => b.card.rec === null);
       if (need.length) {
-        const recs = await generateRecs(diet, need.map((b) => b.place));
+        const recs = await generateRecs(diet, need.map((b) => b.place), avoid);
         for (const b of need) {
           const r = recs.get(b.place.name);
           if (r) b.card.rec = r;
@@ -143,7 +172,7 @@ export async function GET(request: NextRequest) {
       source: "sample",
       loc,
       note: err instanceof Error ? err.message : "places lookup failed",
-      cards: sampleCards(diet, styles, budget),
+      cards: sampleCards(diet, styles, budget, avoid),
     });
   }
 }

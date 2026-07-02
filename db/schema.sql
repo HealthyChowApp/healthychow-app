@@ -38,3 +38,19 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Outbound order-click log (written by /api/out for conversion tracking).
+-- Insert-only for the anon key; read it from the Supabase dashboard.
+create table if not exists public.order_clicks (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  restaurant text not null,
+  kind text not null,
+  dest text not null
+);
+
+alter table public.order_clicks enable row level security;
+
+drop policy if exists "anon can log clicks" on public.order_clicks;
+create policy "anon can log clicks" on public.order_clicks
+  for insert to anon with check (true);
